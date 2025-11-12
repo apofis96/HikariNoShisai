@@ -1,0 +1,24 @@
+@HikariNoShisai.WebAPI_HostAddress = http://localhost:5182
+
+#region Agent
+
+GET {{HikariNoShisai.WebAPI_HostAddress}}/agents/
+Accept: application/json
+
+###
+
+GET {{HikariNoShisai.WebAPI_HostAddress}}/agents/1
+Accept: application/json
+
+###
+
+#endregion
+
+#region Statistics
+
+GET {{HikariNoShisai.WebAPI_HostAddress}}/Statistics/
+Accept: application/json
+
+###
+
+

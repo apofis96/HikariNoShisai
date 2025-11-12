@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="HikariNoShisai.Common/HikariNoShisai.Common.csproj" Id="1bcf4678-844d-4995-8ce4-3c51d2d5d969" />
+  <Project Path="HikariNoShisai.DAL/HikariNoShisai.DAL.csproj" Id="788b8931-e3f5-42cf-bdf9-30eb185c3e7e" />
+  <Project Path="HikariNoShisai.WebAPI/HikariNoShisai.WebAPI.csproj" />
+</Solution>
