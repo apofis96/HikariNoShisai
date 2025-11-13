@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <PublishAot>false</PublishAot>
+    <PublishAot>true</PublishAot>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,6 +15,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite.Core" Version="10.0.0" />
+    <PackageReference Include="Telegram.Bot" Version="22.7.5" />
   </ItemGroup>
 
   <ItemGroup>

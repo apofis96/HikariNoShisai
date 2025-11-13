@@ -1,6 +1,7 @@
 ﻿using HikariNoShisai.Common.Entities;
 using HikariNoShisai.DAL.CompiledModels;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace HikariNoShisai.DAL
 {
@@ -8,11 +9,12 @@ namespace HikariNoShisai.DAL
     {
         public DbSet<Agent> Agents => Set<Agent>();
 
+        public static readonly IModel CompiledModel = HikariNoShisaiContextModel.Instance;
 
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        /*protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder
-                .UseModel(HikariNoShisaiContextModel.Instance);
-        }
+                .UseModel(CompiledModel);
+        }*/
     }
 }

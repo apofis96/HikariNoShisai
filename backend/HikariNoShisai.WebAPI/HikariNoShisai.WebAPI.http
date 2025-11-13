@@ -21,4 +21,13 @@ Accept: application/json
 
 ###
 
+#endregion
+
+#region Telegram
+GET {{HikariNoShisai.WebAPI_HostAddress}}/bot//setWebhook/
+Accept: application/json
+
+###
+
+#endregion
 
