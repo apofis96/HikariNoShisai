@@ -401,3 +401,4 @@ FodyWeavers.xsd
 .env
 .pio
 
+/backend/HikariNoShisai.WebAPI/appsettings.Development.json
