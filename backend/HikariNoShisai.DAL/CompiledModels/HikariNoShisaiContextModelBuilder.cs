@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Update.Internal;
 
 #pragma warning disable 219, 612, 618
@@ -15,15 +16,22 @@ namespace HikariNoShisai.DAL.CompiledModels
     public partial class HikariNoShisaiContextModel
     {
         private HikariNoShisaiContextModel()
-            : base(skipDetectChanges: false, modelId: new Guid("930f6211-4466-4e8b-bb84-654fc5e6fb22"), entityTypeCount: 1)
+            : base(skipDetectChanges: false, modelId: new Guid("1e6fb99b-2286-494a-8552-4511a64a925c"), entityTypeCount: 3)
         {
         }
 
         partial void Initialize()
         {
             var agent = AgentEntityType.Create(this);
+            var agentStatusLog = AgentStatusLogEntityType.Create(this);
+            var agentTerminal = AgentTerminalEntityType.Create(this);
+
+            AgentStatusLogEntityType.CreateForeignKey1(agentStatusLog, agent);
+            AgentTerminalEntityType.CreateForeignKey1(agentTerminal, agent);
 
             AgentEntityType.CreateAnnotations(agent);
+            AgentStatusLogEntityType.CreateAnnotations(agentStatusLog);
+            AgentTerminalEntityType.CreateAnnotations(agentTerminal);
 
             AddAnnotation("ProductVersion", "10.0.0");
             AddRuntimeAnnotation("Relational:RelationalModelFactory", () => CreateRelationalModel());
@@ -44,6 +52,8 @@ namespace HikariNoShisai.DAL.CompiledModels
             hikariNoShisaiCommonEntitiesAgentTableBase.Columns.Add("Description", descriptionColumnBase);
             var idColumnBase = new ColumnBase<ColumnMappingBase>("Id", "TEXT", hikariNoShisaiCommonEntitiesAgentTableBase);
             hikariNoShisaiCommonEntitiesAgentTableBase.Columns.Add("Id", idColumnBase);
+            var nameColumnBase = new ColumnBase<ColumnMappingBase>("Name", "TEXT", hikariNoShisaiCommonEntitiesAgentTableBase);
+            hikariNoShisaiCommonEntitiesAgentTableBase.Columns.Add("Name", nameColumnBase);
             var updatedAtColumnBase = new ColumnBase<ColumnMappingBase>("UpdatedAt", "TEXT", hikariNoShisaiCommonEntitiesAgentTableBase);
             hikariNoShisaiCommonEntitiesAgentTableBase.Columns.Add("UpdatedAt", updatedAtColumnBase);
             relationalModel.DefaultTables.Add("HikariNoShisai.Common.Entities.Agent", hikariNoShisaiCommonEntitiesAgentTableBase);
@@ -53,6 +63,7 @@ namespace HikariNoShisai.DAL.CompiledModels
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)idColumnBase, agent.FindProperty("Id")!, hikariNoShisaiCommonEntitiesAgentMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)createdAtColumnBase, agent.FindProperty("CreatedAt")!, hikariNoShisaiCommonEntitiesAgentMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)descriptionColumnBase, agent.FindProperty("Description")!, hikariNoShisaiCommonEntitiesAgentMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)nameColumnBase, agent.FindProperty("Name")!, hikariNoShisaiCommonEntitiesAgentMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)updatedAtColumnBase, agent.FindProperty("UpdatedAt")!, hikariNoShisaiCommonEntitiesAgentMappingBase);
 
             var tableMappings = new List<TableMapping>();
@@ -67,6 +78,9 @@ namespace HikariNoShisai.DAL.CompiledModels
             var descriptionColumn = new Column("Description", "TEXT", agentsTable);
             agentsTable.Columns.Add("Description", descriptionColumn);
             descriptionColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<string>(descriptionColumn);
+            var nameColumn = new Column("Name", "TEXT", agentsTable);
+            agentsTable.Columns.Add("Name", nameColumn);
+            nameColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<string>(nameColumn);
             var updatedAtColumn = new Column("UpdatedAt", "TEXT", agentsTable);
             agentsTable.Columns.Add("UpdatedAt", updatedAtColumn);
             updatedAtColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<DateTimeOffset>(updatedAtColumn);
@@ -77,6 +91,7 @@ namespace HikariNoShisai.DAL.CompiledModels
             RelationalModel.CreateColumnMapping(idColumn, agent.FindProperty("Id")!, agentsTableMapping);
             RelationalModel.CreateColumnMapping(createdAtColumn, agent.FindProperty("CreatedAt")!, agentsTableMapping);
             RelationalModel.CreateColumnMapping(descriptionColumn, agent.FindProperty("Description")!, agentsTableMapping);
+            RelationalModel.CreateColumnMapping(nameColumn, agent.FindProperty("Name")!, agentsTableMapping);
             RelationalModel.CreateColumnMapping(updatedAtColumn, agent.FindProperty("UpdatedAt")!, agentsTableMapping);
             var pK_Agents = new UniqueConstraint("PK_Agents", agentsTable, new[] { idColumn });
             agentsTable.PrimaryKey = pK_Agents;
@@ -87,6 +102,204 @@ namespace HikariNoShisai.DAL.CompiledModels
             pK_Agents.MappedKeys.Add(pK_AgentsKey);
             RelationalModel.GetOrCreateUniqueConstraints(pK_AgentsKey).Add(pK_Agents);
             agentsTable.UniqueConstraints.Add("PK_Agents", pK_Agents);
+
+            var agentStatusLog = FindEntityType("HikariNoShisai.Common.Entities.AgentStatusLog")!;
+
+            var defaultTableMappings0 = new List<TableMappingBase<ColumnMappingBase>>();
+            agentStatusLog.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings0);
+            var hikariNoShisaiCommonEntitiesAgentStatusLogTableBase = new TableBase("HikariNoShisai.Common.Entities.AgentStatusLog", null, relationalModel);
+            var agentIdColumnBase = new ColumnBase<ColumnMappingBase>("AgentId", "TEXT", hikariNoShisaiCommonEntitiesAgentStatusLogTableBase);
+            hikariNoShisaiCommonEntitiesAgentStatusLogTableBase.Columns.Add("AgentId", agentIdColumnBase);
+            var batteryVoltageColumnBase = new ColumnBase<ColumnMappingBase>("BatteryVoltage", "INTEGER", hikariNoShisaiCommonEntitiesAgentStatusLogTableBase);
+            hikariNoShisaiCommonEntitiesAgentStatusLogTableBase.Columns.Add("BatteryVoltage", batteryVoltageColumnBase);
+            var createdAtColumnBase0 = new ColumnBase<ColumnMappingBase>("CreatedAt", "TEXT", hikariNoShisaiCommonEntitiesAgentStatusLogTableBase);
+            hikariNoShisaiCommonEntitiesAgentStatusLogTableBase.Columns.Add("CreatedAt", createdAtColumnBase0);
+            var gridVoltageColumnBase = new ColumnBase<ColumnMappingBase>("GridVoltage", "INTEGER", hikariNoShisaiCommonEntitiesAgentStatusLogTableBase);
+            hikariNoShisaiCommonEntitiesAgentStatusLogTableBase.Columns.Add("GridVoltage", gridVoltageColumnBase);
+            var idColumnBase0 = new ColumnBase<ColumnMappingBase>("Id", "TEXT", hikariNoShisaiCommonEntitiesAgentStatusLogTableBase);
+            hikariNoShisaiCommonEntitiesAgentStatusLogTableBase.Columns.Add("Id", idColumnBase0);
+            var isGridAvailableColumnBase = new ColumnBase<ColumnMappingBase>("IsGridAvailable", "INTEGER", hikariNoShisaiCommonEntitiesAgentStatusLogTableBase);
+            hikariNoShisaiCommonEntitiesAgentStatusLogTableBase.Columns.Add("IsGridAvailable", isGridAvailableColumnBase);
+            var updatedAtColumnBase0 = new ColumnBase<ColumnMappingBase>("UpdatedAt", "TEXT", hikariNoShisaiCommonEntitiesAgentStatusLogTableBase);
+            hikariNoShisaiCommonEntitiesAgentStatusLogTableBase.Columns.Add("UpdatedAt", updatedAtColumnBase0);
+            relationalModel.DefaultTables.Add("HikariNoShisai.Common.Entities.AgentStatusLog", hikariNoShisaiCommonEntitiesAgentStatusLogTableBase);
+            var hikariNoShisaiCommonEntitiesAgentStatusLogMappingBase = new TableMappingBase<ColumnMappingBase>(agentStatusLog, hikariNoShisaiCommonEntitiesAgentStatusLogTableBase, null);
+            hikariNoShisaiCommonEntitiesAgentStatusLogTableBase.AddTypeMapping(hikariNoShisaiCommonEntitiesAgentStatusLogMappingBase, false);
+            defaultTableMappings0.Add(hikariNoShisaiCommonEntitiesAgentStatusLogMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)idColumnBase0, agentStatusLog.FindProperty("Id")!, hikariNoShisaiCommonEntitiesAgentStatusLogMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)agentIdColumnBase, agentStatusLog.FindProperty("AgentId")!, hikariNoShisaiCommonEntitiesAgentStatusLogMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)batteryVoltageColumnBase, agentStatusLog.FindProperty("BatteryVoltage")!, hikariNoShisaiCommonEntitiesAgentStatusLogMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)createdAtColumnBase0, agentStatusLog.FindProperty("CreatedAt")!, hikariNoShisaiCommonEntitiesAgentStatusLogMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)gridVoltageColumnBase, agentStatusLog.FindProperty("GridVoltage")!, hikariNoShisaiCommonEntitiesAgentStatusLogMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)isGridAvailableColumnBase, agentStatusLog.FindProperty("IsGridAvailable")!, hikariNoShisaiCommonEntitiesAgentStatusLogMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)updatedAtColumnBase0, agentStatusLog.FindProperty("UpdatedAt")!, hikariNoShisaiCommonEntitiesAgentStatusLogMappingBase);
+
+            var tableMappings0 = new List<TableMapping>();
+            agentStatusLog.SetRuntimeAnnotation("Relational:TableMappings", tableMappings0);
+            var agentStatusLogsTable = new Table("AgentStatusLogs", null, relationalModel);
+            var idColumn0 = new Column("Id", "TEXT", agentStatusLogsTable);
+            agentStatusLogsTable.Columns.Add("Id", idColumn0);
+            idColumn0.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(idColumn0);
+            var agentIdColumn = new Column("AgentId", "TEXT", agentStatusLogsTable);
+            agentStatusLogsTable.Columns.Add("AgentId", agentIdColumn);
+            agentIdColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(agentIdColumn);
+            var batteryVoltageColumn = new Column("BatteryVoltage", "INTEGER", agentStatusLogsTable);
+            agentStatusLogsTable.Columns.Add("BatteryVoltage", batteryVoltageColumn);
+            batteryVoltageColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<int>(batteryVoltageColumn);
+            var createdAtColumn0 = new Column("CreatedAt", "TEXT", agentStatusLogsTable);
+            agentStatusLogsTable.Columns.Add("CreatedAt", createdAtColumn0);
+            createdAtColumn0.Accessors = ColumnAccessorsFactory.CreateGeneric<DateTimeOffset>(createdAtColumn0);
+            var gridVoltageColumn = new Column("GridVoltage", "INTEGER", agentStatusLogsTable);
+            agentStatusLogsTable.Columns.Add("GridVoltage", gridVoltageColumn);
+            gridVoltageColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<int>(gridVoltageColumn);
+            var isGridAvailableColumn = new Column("IsGridAvailable", "INTEGER", agentStatusLogsTable);
+            agentStatusLogsTable.Columns.Add("IsGridAvailable", isGridAvailableColumn);
+            isGridAvailableColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<bool>(isGridAvailableColumn);
+            var updatedAtColumn0 = new Column("UpdatedAt", "TEXT", agentStatusLogsTable);
+            agentStatusLogsTable.Columns.Add("UpdatedAt", updatedAtColumn0);
+            updatedAtColumn0.Accessors = ColumnAccessorsFactory.CreateGeneric<DateTimeOffset>(updatedAtColumn0);
+            relationalModel.Tables.Add(("AgentStatusLogs", null), agentStatusLogsTable);
+            var agentStatusLogsTableMapping = new TableMapping(agentStatusLog, agentStatusLogsTable, null);
+            agentStatusLogsTable.AddTypeMapping(agentStatusLogsTableMapping, false);
+            tableMappings0.Add(agentStatusLogsTableMapping);
+            RelationalModel.CreateColumnMapping(idColumn0, agentStatusLog.FindProperty("Id")!, agentStatusLogsTableMapping);
+            RelationalModel.CreateColumnMapping(agentIdColumn, agentStatusLog.FindProperty("AgentId")!, agentStatusLogsTableMapping);
+            RelationalModel.CreateColumnMapping(batteryVoltageColumn, agentStatusLog.FindProperty("BatteryVoltage")!, agentStatusLogsTableMapping);
+            RelationalModel.CreateColumnMapping(createdAtColumn0, agentStatusLog.FindProperty("CreatedAt")!, agentStatusLogsTableMapping);
+            RelationalModel.CreateColumnMapping(gridVoltageColumn, agentStatusLog.FindProperty("GridVoltage")!, agentStatusLogsTableMapping);
+            RelationalModel.CreateColumnMapping(isGridAvailableColumn, agentStatusLog.FindProperty("IsGridAvailable")!, agentStatusLogsTableMapping);
+            RelationalModel.CreateColumnMapping(updatedAtColumn0, agentStatusLog.FindProperty("UpdatedAt")!, agentStatusLogsTableMapping);
+            var pK_AgentStatusLogs = new UniqueConstraint("PK_AgentStatusLogs", agentStatusLogsTable, new[] { idColumn0 });
+            agentStatusLogsTable.PrimaryKey = pK_AgentStatusLogs;
+            pK_AgentStatusLogs.SetRowKeyValueFactory(new SimpleRowKeyValueFactory<Guid>(pK_AgentStatusLogs));
+            var pK_AgentStatusLogsKey = RelationalModel.GetKey(this,
+                "HikariNoShisai.Common.Entities.AgentStatusLog",
+                new[] { "Id" });
+            pK_AgentStatusLogs.MappedKeys.Add(pK_AgentStatusLogsKey);
+            RelationalModel.GetOrCreateUniqueConstraints(pK_AgentStatusLogsKey).Add(pK_AgentStatusLogs);
+            agentStatusLogsTable.UniqueConstraints.Add("PK_AgentStatusLogs", pK_AgentStatusLogs);
+            var iX_AgentStatusLogs_AgentId = new TableIndex(
+            "IX_AgentStatusLogs_AgentId", agentStatusLogsTable, new[] { agentIdColumn }, false);
+            iX_AgentStatusLogs_AgentId.SetRowIndexValueFactory(new SimpleRowIndexValueFactory<Guid>(iX_AgentStatusLogs_AgentId));
+            var iX_AgentStatusLogs_AgentIdIx = RelationalModel.GetIndex(this,
+                "HikariNoShisai.Common.Entities.AgentStatusLog",
+                new[] { "AgentId" });
+            iX_AgentStatusLogs_AgentId.MappedIndexes.Add(iX_AgentStatusLogs_AgentIdIx);
+            RelationalModel.GetOrCreateTableIndexes(iX_AgentStatusLogs_AgentIdIx).Add(iX_AgentStatusLogs_AgentId);
+            agentStatusLogsTable.Indexes.Add("IX_AgentStatusLogs_AgentId", iX_AgentStatusLogs_AgentId);
+
+            var agentTerminal = FindEntityType("HikariNoShisai.Common.Entities.AgentTerminal")!;
+
+            var defaultTableMappings1 = new List<TableMappingBase<ColumnMappingBase>>();
+            agentTerminal.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings1);
+            var hikariNoShisaiCommonEntitiesAgentTerminalTableBase = new TableBase("HikariNoShisai.Common.Entities.AgentTerminal", null, relationalModel);
+            var agentIdColumnBase0 = new ColumnBase<ColumnMappingBase>("AgentId", "TEXT", hikariNoShisaiCommonEntitiesAgentTerminalTableBase);
+            hikariNoShisaiCommonEntitiesAgentTerminalTableBase.Columns.Add("AgentId", agentIdColumnBase0);
+            var createdAtColumnBase1 = new ColumnBase<ColumnMappingBase>("CreatedAt", "TEXT", hikariNoShisaiCommonEntitiesAgentTerminalTableBase);
+            hikariNoShisaiCommonEntitiesAgentTerminalTableBase.Columns.Add("CreatedAt", createdAtColumnBase1);
+            var descriptionColumnBase0 = new ColumnBase<ColumnMappingBase>("Description", "TEXT", hikariNoShisaiCommonEntitiesAgentTerminalTableBase);
+            hikariNoShisaiCommonEntitiesAgentTerminalTableBase.Columns.Add("Description", descriptionColumnBase0);
+            var idColumnBase1 = new ColumnBase<ColumnMappingBase>("Id", "TEXT", hikariNoShisaiCommonEntitiesAgentTerminalTableBase);
+            hikariNoShisaiCommonEntitiesAgentTerminalTableBase.Columns.Add("Id", idColumnBase1);
+            var isActiveColumnBase = new ColumnBase<ColumnMappingBase>("IsActive", "INTEGER", hikariNoShisaiCommonEntitiesAgentTerminalTableBase);
+            hikariNoShisaiCommonEntitiesAgentTerminalTableBase.Columns.Add("IsActive", isActiveColumnBase);
+            var nameColumnBase0 = new ColumnBase<ColumnMappingBase>("Name", "TEXT", hikariNoShisaiCommonEntitiesAgentTerminalTableBase);
+            hikariNoShisaiCommonEntitiesAgentTerminalTableBase.Columns.Add("Name", nameColumnBase0);
+            var updatedAtColumnBase1 = new ColumnBase<ColumnMappingBase>("UpdatedAt", "TEXT", hikariNoShisaiCommonEntitiesAgentTerminalTableBase);
+            hikariNoShisaiCommonEntitiesAgentTerminalTableBase.Columns.Add("UpdatedAt", updatedAtColumnBase1);
+            relationalModel.DefaultTables.Add("HikariNoShisai.Common.Entities.AgentTerminal", hikariNoShisaiCommonEntitiesAgentTerminalTableBase);
+            var hikariNoShisaiCommonEntitiesAgentTerminalMappingBase = new TableMappingBase<ColumnMappingBase>(agentTerminal, hikariNoShisaiCommonEntitiesAgentTerminalTableBase, null);
+            hikariNoShisaiCommonEntitiesAgentTerminalTableBase.AddTypeMapping(hikariNoShisaiCommonEntitiesAgentTerminalMappingBase, false);
+            defaultTableMappings1.Add(hikariNoShisaiCommonEntitiesAgentTerminalMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)idColumnBase1, agentTerminal.FindProperty("Id")!, hikariNoShisaiCommonEntitiesAgentTerminalMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)agentIdColumnBase0, agentTerminal.FindProperty("AgentId")!, hikariNoShisaiCommonEntitiesAgentTerminalMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)createdAtColumnBase1, agentTerminal.FindProperty("CreatedAt")!, hikariNoShisaiCommonEntitiesAgentTerminalMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)descriptionColumnBase0, agentTerminal.FindProperty("Description")!, hikariNoShisaiCommonEntitiesAgentTerminalMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)isActiveColumnBase, agentTerminal.FindProperty("IsActive")!, hikariNoShisaiCommonEntitiesAgentTerminalMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)nameColumnBase0, agentTerminal.FindProperty("Name")!, hikariNoShisaiCommonEntitiesAgentTerminalMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)updatedAtColumnBase1, agentTerminal.FindProperty("UpdatedAt")!, hikariNoShisaiCommonEntitiesAgentTerminalMappingBase);
+
+            var tableMappings1 = new List<TableMapping>();
+            agentTerminal.SetRuntimeAnnotation("Relational:TableMappings", tableMappings1);
+            var agentTerminalsTable = new Table("AgentTerminals", null, relationalModel);
+            var idColumn1 = new Column("Id", "TEXT", agentTerminalsTable);
+            agentTerminalsTable.Columns.Add("Id", idColumn1);
+            idColumn1.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(idColumn1);
+            var agentIdColumn0 = new Column("AgentId", "TEXT", agentTerminalsTable);
+            agentTerminalsTable.Columns.Add("AgentId", agentIdColumn0);
+            agentIdColumn0.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(agentIdColumn0);
+            var createdAtColumn1 = new Column("CreatedAt", "TEXT", agentTerminalsTable);
+            agentTerminalsTable.Columns.Add("CreatedAt", createdAtColumn1);
+            createdAtColumn1.Accessors = ColumnAccessorsFactory.CreateGeneric<DateTimeOffset>(createdAtColumn1);
+            var descriptionColumn0 = new Column("Description", "TEXT", agentTerminalsTable);
+            agentTerminalsTable.Columns.Add("Description", descriptionColumn0);
+            descriptionColumn0.Accessors = ColumnAccessorsFactory.CreateGeneric<string>(descriptionColumn0);
+            var isActiveColumn = new Column("IsActive", "INTEGER", agentTerminalsTable);
+            agentTerminalsTable.Columns.Add("IsActive", isActiveColumn);
+            isActiveColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<bool>(isActiveColumn);
+            var nameColumn0 = new Column("Name", "TEXT", agentTerminalsTable);
+            agentTerminalsTable.Columns.Add("Name", nameColumn0);
+            nameColumn0.Accessors = ColumnAccessorsFactory.CreateGeneric<string>(nameColumn0);
+            var updatedAtColumn1 = new Column("UpdatedAt", "TEXT", agentTerminalsTable);
+            agentTerminalsTable.Columns.Add("UpdatedAt", updatedAtColumn1);
+            updatedAtColumn1.Accessors = ColumnAccessorsFactory.CreateGeneric<DateTimeOffset>(updatedAtColumn1);
+            relationalModel.Tables.Add(("AgentTerminals", null), agentTerminalsTable);
+            var agentTerminalsTableMapping = new TableMapping(agentTerminal, agentTerminalsTable, null);
+            agentTerminalsTable.AddTypeMapping(agentTerminalsTableMapping, false);
+            tableMappings1.Add(agentTerminalsTableMapping);
+            RelationalModel.CreateColumnMapping(idColumn1, agentTerminal.FindProperty("Id")!, agentTerminalsTableMapping);
+            RelationalModel.CreateColumnMapping(agentIdColumn0, agentTerminal.FindProperty("AgentId")!, agentTerminalsTableMapping);
+            RelationalModel.CreateColumnMapping(createdAtColumn1, agentTerminal.FindProperty("CreatedAt")!, agentTerminalsTableMapping);
+            RelationalModel.CreateColumnMapping(descriptionColumn0, agentTerminal.FindProperty("Description")!, agentTerminalsTableMapping);
+            RelationalModel.CreateColumnMapping(isActiveColumn, agentTerminal.FindProperty("IsActive")!, agentTerminalsTableMapping);
+            RelationalModel.CreateColumnMapping(nameColumn0, agentTerminal.FindProperty("Name")!, agentTerminalsTableMapping);
+            RelationalModel.CreateColumnMapping(updatedAtColumn1, agentTerminal.FindProperty("UpdatedAt")!, agentTerminalsTableMapping);
+            var pK_AgentTerminals = new UniqueConstraint("PK_AgentTerminals", agentTerminalsTable, new[] { idColumn1 });
+            agentTerminalsTable.PrimaryKey = pK_AgentTerminals;
+            pK_AgentTerminals.SetRowKeyValueFactory(new SimpleRowKeyValueFactory<Guid>(pK_AgentTerminals));
+            var pK_AgentTerminalsKey = RelationalModel.GetKey(this,
+                "HikariNoShisai.Common.Entities.AgentTerminal",
+                new[] { "Id" });
+            pK_AgentTerminals.MappedKeys.Add(pK_AgentTerminalsKey);
+            RelationalModel.GetOrCreateUniqueConstraints(pK_AgentTerminalsKey).Add(pK_AgentTerminals);
+            agentTerminalsTable.UniqueConstraints.Add("PK_AgentTerminals", pK_AgentTerminals);
+            var iX_AgentTerminals_AgentId = new TableIndex(
+            "IX_AgentTerminals_AgentId", agentTerminalsTable, new[] { agentIdColumn0 }, false);
+            iX_AgentTerminals_AgentId.SetRowIndexValueFactory(new SimpleRowIndexValueFactory<Guid>(iX_AgentTerminals_AgentId));
+            var iX_AgentTerminals_AgentIdIx = RelationalModel.GetIndex(this,
+                "HikariNoShisai.Common.Entities.AgentTerminal",
+                new[] { "AgentId" });
+            iX_AgentTerminals_AgentId.MappedIndexes.Add(iX_AgentTerminals_AgentIdIx);
+            RelationalModel.GetOrCreateTableIndexes(iX_AgentTerminals_AgentIdIx).Add(iX_AgentTerminals_AgentId);
+            agentTerminalsTable.Indexes.Add("IX_AgentTerminals_AgentId", iX_AgentTerminals_AgentId);
+            var fK_AgentStatusLogs_Agents_AgentId = new ForeignKeyConstraint(
+                "FK_AgentStatusLogs_Agents_AgentId", agentStatusLogsTable, agentsTable,
+                new[] { agentIdColumn },
+                agentsTable.FindUniqueConstraint("PK_Agents")!, ReferentialAction.Cascade);
+            fK_AgentStatusLogs_Agents_AgentId.SetRowForeignKeyValueFactory(RowForeignKeyValueFactoryFactory.CreateSimpleNonNullableFactory<Guid, Guid>(fK_AgentStatusLogs_Agents_AgentId));
+            var fK_AgentStatusLogs_Agents_AgentIdFk = RelationalModel.GetForeignKey(this,
+                "HikariNoShisai.Common.Entities.AgentStatusLog",
+                new[] { "AgentId" },
+                "HikariNoShisai.Common.Entities.Agent",
+                new[] { "Id" });
+            fK_AgentStatusLogs_Agents_AgentId.MappedForeignKeys.Add(fK_AgentStatusLogs_Agents_AgentIdFk);
+            RelationalModel.GetOrCreateForeignKeyConstraints(fK_AgentStatusLogs_Agents_AgentIdFk).Add(fK_AgentStatusLogs_Agents_AgentId);
+            agentStatusLogsTable.ForeignKeyConstraints.Add(fK_AgentStatusLogs_Agents_AgentId);
+            agentsTable.ReferencingForeignKeyConstraints.Add(fK_AgentStatusLogs_Agents_AgentId);
+            var fK_AgentTerminals_Agents_AgentId = new ForeignKeyConstraint(
+                "FK_AgentTerminals_Agents_AgentId", agentTerminalsTable, agentsTable,
+                new[] { agentIdColumn0 },
+                agentsTable.FindUniqueConstraint("PK_Agents")!, ReferentialAction.Cascade);
+            fK_AgentTerminals_Agents_AgentId.SetRowForeignKeyValueFactory(RowForeignKeyValueFactoryFactory.CreateSimpleNonNullableFactory<Guid, Guid>(fK_AgentTerminals_Agents_AgentId));
+            var fK_AgentTerminals_Agents_AgentIdFk = RelationalModel.GetForeignKey(this,
+                "HikariNoShisai.Common.Entities.AgentTerminal",
+                new[] { "AgentId" },
+                "HikariNoShisai.Common.Entities.Agent",
+                new[] { "Id" });
+            fK_AgentTerminals_Agents_AgentId.MappedForeignKeys.Add(fK_AgentTerminals_Agents_AgentIdFk);
+            RelationalModel.GetOrCreateForeignKeyConstraints(fK_AgentTerminals_Agents_AgentIdFk).Add(fK_AgentTerminals_Agents_AgentId);
+            agentTerminalsTable.ForeignKeyConstraints.Add(fK_AgentTerminals_Agents_AgentId);
+            agentsTable.ReferencingForeignKeyConstraints.Add(fK_AgentTerminals_Agents_AgentId);
             return relationalModel.MakeReadOnly();
         }
     }

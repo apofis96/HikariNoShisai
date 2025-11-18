@@ -24,7 +24,8 @@ namespace HikariNoShisai.DAL.CompiledModels
                 "HikariNoShisai.Common.Entities.Agent",
                 typeof(Agent),
                 baseEntityType,
-                propertyCount: 4,
+                propertyCount: 5,
+                navigationCount: 2,
                 keyCount: 1);
 
             var id = runtimeEntityType.AddProperty(
@@ -131,6 +132,39 @@ namespace HikariNoShisai.DAL.CompiledModels
                 storeGenerationIndex: -1);
             description.TypeMapping = SqliteStringTypeMapping.Default;
 
+            var name = runtimeEntityType.AddProperty(
+                "Name",
+                typeof(string),
+                propertyInfo: typeof(Agent).GetProperty("Name", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
+                fieldInfo: typeof(Agent).GetField("<Name>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly));
+            name.SetGetter(
+                string (Agent instance) => AgentUnsafeAccessors.Name(instance),
+                bool (Agent instance) => AgentUnsafeAccessors.Name(instance) == null);
+            name.SetSetter(
+                Agent (Agent instance, string value) =>
+                {
+                    AgentUnsafeAccessors.Name(instance) = value;
+                    return instance;
+                });
+            name.SetMaterializationSetter(
+                Agent (Agent instance, string value) =>
+                {
+                    AgentUnsafeAccessors.Name(instance) = value;
+                    return instance;
+                });
+            name.SetAccessors(
+                string (IInternalEntry entry) => AgentUnsafeAccessors.Name(((Agent)(entry.Entity))),
+                string (IInternalEntry entry) => AgentUnsafeAccessors.Name(((Agent)(entry.Entity))),
+                string (IInternalEntry entry) => entry.ReadOriginalValue<string>(name, 3),
+                string (IInternalEntry entry) => entry.GetCurrentValue<string>(name));
+            name.SetPropertyIndexes(
+                index: 3,
+                originalValueIndex: 3,
+                shadowIndex: -1,
+                relationshipIndex: -1,
+                storeGenerationIndex: -1);
+            name.TypeMapping = SqliteStringTypeMapping.Default;
+
             var updatedAt = runtimeEntityType.AddProperty(
                 "UpdatedAt",
                 typeof(DateTimeOffset),
@@ -155,11 +189,11 @@ namespace HikariNoShisai.DAL.CompiledModels
             updatedAt.SetAccessors(
                 DateTimeOffset (IInternalEntry entry) => BaseEntityUnsafeAccessors.UpdatedAt(((Agent)(entry.Entity))),
                 DateTimeOffset (IInternalEntry entry) => BaseEntityUnsafeAccessors.UpdatedAt(((Agent)(entry.Entity))),
-                DateTimeOffset (IInternalEntry entry) => entry.ReadOriginalValue<DateTimeOffset>(updatedAt, 3),
+                DateTimeOffset (IInternalEntry entry) => entry.ReadOriginalValue<DateTimeOffset>(updatedAt, 4),
                 DateTimeOffset (IInternalEntry entry) => entry.GetCurrentValue<DateTimeOffset>(updatedAt));
             updatedAt.SetPropertyIndexes(
-                index: 3,
-                originalValueIndex: 3,
+                index: 4,
+                originalValueIndex: 4,
                 shadowIndex: -1,
                 relationshipIndex: -1,
                 storeGenerationIndex: -1);
@@ -177,15 +211,18 @@ namespace HikariNoShisai.DAL.CompiledModels
             var id = runtimeEntityType.FindProperty("Id");
             var createdAt = runtimeEntityType.FindProperty("CreatedAt");
             var description = runtimeEntityType.FindProperty("Description");
+            var name = runtimeEntityType.FindProperty("Name");
             var updatedAt = runtimeEntityType.FindProperty("UpdatedAt");
             var key = runtimeEntityType.FindKey(new[] { id });
             key.SetPrincipalKeyValueFactory(KeyValueFactoryFactory.CreateSimpleNonNullableFactory<Guid>(key));
             key.SetIdentityMapFactory(IdentityMapFactoryFactory.CreateFactory<Guid>(key));
+            var statusLogs = runtimeEntityType.FindNavigation("StatusLogs");
+            var terminals = runtimeEntityType.FindNavigation("Terminals");
             runtimeEntityType.SetOriginalValuesFactory(
                 ISnapshot (IInternalEntry source) =>
                 {
                     var structuralType = ((Agent)(source.Entity));
-                    return ((ISnapshot)(new Snapshot<Guid, DateTimeOffset, string, DateTimeOffset>(((ValueComparer<Guid>)(((IProperty)id).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(id)), ((ValueComparer<DateTimeOffset>)(((IProperty)createdAt).GetValueComparer())).Snapshot(source.GetCurrentValue<DateTimeOffset>(createdAt)), (source.GetCurrentValue<string>(description) == null ? null : ((ValueComparer<string>)(((IProperty)description).GetValueComparer())).Snapshot(source.GetCurrentValue<string>(description))), ((ValueComparer<DateTimeOffset>)(((IProperty)updatedAt).GetValueComparer())).Snapshot(source.GetCurrentValue<DateTimeOffset>(updatedAt)))));
+                    return ((ISnapshot)(new Snapshot<Guid, DateTimeOffset, string, string, DateTimeOffset>(((ValueComparer<Guid>)(((IProperty)id).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(id)), ((ValueComparer<DateTimeOffset>)(((IProperty)createdAt).GetValueComparer())).Snapshot(source.GetCurrentValue<DateTimeOffset>(createdAt)), (source.GetCurrentValue<string>(description) == null ? null : ((ValueComparer<string>)(((IProperty)description).GetValueComparer())).Snapshot(source.GetCurrentValue<string>(description))), (source.GetCurrentValue<string>(name) == null ? null : ((ValueComparer<string>)(((IProperty)name).GetValueComparer())).Snapshot(source.GetCurrentValue<string>(name))), ((ValueComparer<DateTimeOffset>)(((IProperty)updatedAt).GetValueComparer())).Snapshot(source.GetCurrentValue<DateTimeOffset>(updatedAt)))));
                 });
             runtimeEntityType.SetStoreGeneratedValuesFactory(
                 ISnapshot () => ((ISnapshot)(new Snapshot<Guid>(((ValueComparer<Guid>)(((IProperty)id).GetValueComparer())).Snapshot(default(Guid))))));
@@ -199,16 +236,16 @@ namespace HikariNoShisai.DAL.CompiledModels
                 ISnapshot (IInternalEntry source) =>
                 {
                     var structuralType = ((Agent)(source.Entity));
-                    return ((ISnapshot)(new Snapshot<Guid>(((ValueComparer<Guid>)(((IProperty)id).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(id)))));
+                    return ((ISnapshot)(new Snapshot<Guid, object, object>(((ValueComparer<Guid>)(((IProperty)id).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(id)), SnapshotFactoryFactory.SnapshotCollection(source.GetCurrentValue<ICollection<AgentStatusLog>>(statusLogs)), SnapshotFactoryFactory.SnapshotCollection(source.GetCurrentValue<ICollection<AgentTerminal>>(terminals)))));
                 });
             runtimeEntityType.SetCounts(new PropertyCounts(
-                propertyCount: 4,
-                navigationCount: 0,
+                propertyCount: 5,
+                navigationCount: 2,
                 complexPropertyCount: 0,
                 complexCollectionCount: 0,
-                originalValueCount: 4,
+                originalValueCount: 5,
                 shadowCount: 0,
-                relationshipCount: 1,
+                relationshipCount: 3,
                 storeGeneratedCount: 1));
             runtimeEntityType.AddAnnotation("Relational:FunctionName", null);
             runtimeEntityType.AddAnnotation("Relational:Schema", null);
