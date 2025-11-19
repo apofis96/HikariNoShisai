@@ -1,5 +1,8 @@
+using HikariNoShisai.BLL.Services;
 using HikariNoShisai.Common.Configs;
+using HikariNoShisai.Common.Interfaces;
 using HikariNoShisai.DAL;
+using HikariNoShisai.WebAPI;
 using HikariNoShisai.WebAPI.Endpoints;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.EntityFrameworkCore;
@@ -18,8 +21,14 @@ builder.Services.AddDbContext<HikariNoShisaiContext>(options =>
     .UseModel(HikariNoShisaiContext.CompiledModel));
 
 builder.Services.ConfigureTelegramBot<JsonOptions>(opt => opt.SerializerOptions);
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.TypeInfoResolverChain.Insert(0, AppJsonContext.Default);
+});
+
 builder.Services.AddHttpClient("tgwebhook").RemoveAllLoggers()
     .AddTypedClient(httpClient => new TelegramBotClient(builder.Configuration["Telegram:Token"]!, httpClient));
+builder.Services.AddTransient<IAgentTerminalService, AgentTerminalService>();
 
 var app = builder.Build();
 if (app.Environment.IsDevelopment())
@@ -30,5 +39,6 @@ if (app.Environment.IsDevelopment())
 app.MapAgentEndpoints();
 app.MapStatisticsEndpoints();
 app.MapTelegramEndpoints();
+app.MapAgentTerminalEndpoints();
 
 app.Run();

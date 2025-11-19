@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\HikariNoShisai.BLL\HikariNoShisai.BLL.csproj" />
     <ProjectReference Include="..\HikariNoShisai.Common\HikariNoShisai.Common.csproj" />
     <ProjectReference Include="..\HikariNoShisai.DAL\HikariNoShisai.DAL.csproj" />
   </ItemGroup>

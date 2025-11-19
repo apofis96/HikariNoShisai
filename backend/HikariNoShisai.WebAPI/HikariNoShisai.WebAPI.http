@@ -31,3 +31,8 @@ Accept: application/json
 
 #endregion
 
+#region Terminal
+GET {{HikariNoShisai.WebAPI_HostAddress}}/terminal?agentId=00000000-0000-0000-0000-000000000001&terminalId=00000000-0000-0000-0000-000000000002
+Accept: application/json
+###
+#endregion
