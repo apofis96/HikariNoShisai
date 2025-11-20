@@ -14,6 +14,12 @@ namespace HikariNoShisai.WebAPI.Endpoints
 
                 return Results.Ok(status);
             }).WithName("GetAgentTerminal");
+            agentTerminalsApi.MapPatch("/", async ([AsParameters] AgentTerminalStatusPatch request, IAgentTerminalService agentTerminalService) =>
+            {
+                await agentTerminalService.SetAgentTerminalStatus(request.AgentId, request.TerminalId, request.IsActive);
+
+                return Results.NoContent();
+            }).WithName("SetAgentTerminal");
         }
     }
 }

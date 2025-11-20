@@ -5,8 +5,8 @@ namespace HikariNoShisai.WebAPI
 {
     [JsonSourceGenerationOptions(GenerationMode = JsonSourceGenerationMode.Default)]
     [JsonSerializable(typeof(sbyte))]
+    [JsonSerializable(typeof(bool))]
     [JsonSerializable(typeof(AgentTerminalRequest))]
-    public partial class AppJsonContext : JsonSerializerContext
-    {
-    }
+    [JsonSerializable(typeof(AgentTerminalStatusPatch))]
+    public partial class AppJsonContext : JsonSerializerContext {}
 }

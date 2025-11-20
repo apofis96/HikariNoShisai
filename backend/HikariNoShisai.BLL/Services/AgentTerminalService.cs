@@ -1,4 +1,5 @@
-﻿using HikariNoShisai.Common.Interfaces;
+﻿using HikariNoShisai.Common.Entities;
+using HikariNoShisai.Common.Interfaces;
 using HikariNoShisai.DAL;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,27 +11,28 @@ namespace HikariNoShisai.BLL.Services
 
         public async Task<sbyte> GetAgentTerminalStatus(Guid agentId, Guid terminalId)
         {
-            var isTerminalExists = await TerminalExistsAsync(_context, agentId, terminalId);
-            if (!isTerminalExists)
+            var terminal = await GetAgentTerminal(_context, agentId, terminalId);
+            if (terminal is null)
                 return -1;
 
-            var isActive = await GetAgentTerminalStatusQuery(_context, agentId, terminalId);
-
-            return (sbyte)(isActive ? 1 : 0);
+            return (sbyte)(terminal.IsActive ? 1 : 0);
         }
 
-        private static readonly Func<HikariNoShisaiContext, Guid, Guid, Task<bool>> GetAgentTerminalStatusQuery =
+        public async Task SetAgentTerminalStatus(Guid agentId, Guid terminalId, bool isActive)
+        {
+            var terminal = await GetAgentTerminal(_context, agentId, terminalId);
+            if (terminal is null)
+                return;
+
+            terminal.IsActive = isActive;
+            await _context.SaveChangesAsync();
+        }
+
+        private static readonly Func<HikariNoShisaiContext, Guid, Guid, Task<AgentTerminal?>> GetAgentTerminal =
         EF.CompileAsyncQuery((HikariNoShisaiContext context, Guid agentId, Guid terminalId) =>
             context.AgentTerminals
                 .Where(x => x.AgentId == agentId && x.Id == terminalId)
-                .Select(x => x.IsActive)
                 .FirstOrDefault()
-        );
-
-        private static readonly Func<HikariNoShisaiContext, Guid, Guid, Task<bool>> TerminalExistsAsync =
-        EF.CompileAsyncQuery((HikariNoShisaiContext context, Guid agentId, Guid terminalId) =>
-            context.AgentTerminals
-                .Any(e => e.AgentId == agentId && e.Id == terminalId)
         );
     }
 }
