@@ -1,8 +1,10 @@
 ﻿using HikariNoShisai.Common.Configs;
+using HikariNoShisai.Common.Constants;
+using HikariNoShisai.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using System.Linq;
 using Telegram.Bot;
+using Telegram.Bot.Extensions;
 using Telegram.Bot.Types;
 
 namespace HikariNoShisai.WebAPI.Endpoints
@@ -14,16 +16,31 @@ namespace HikariNoShisai.WebAPI.Endpoints
             const string route = "/bot";
 
             var botApi = app.MapGroup(route);
-            botApi.MapGet("/setWebhook", async (TelegramBotClient bot, IOptions<TelegramConfig> config) => {
-                await bot.SetWebhook(config.Value.Url + route); return $"Webhook set to {config.Value.Url + route}";
+            botApi.MapGet("/setWebhook", async (TelegramBotClient bot, IOptions<TelegramConfig> config) =>
+            {
+                await bot.SetWebhook(config.Value.Url + route, secretToken: config.Value.Secret);
+                await bot.SetMyCommands(
+                [
+                    new BotCommand { Command = TelegramCommands.ShowAll, Description = "Show all terminals" },
+                    new BotCommand { Command = TelegramCommands.Toggle, Description = "Toggle [terminal]" },
+                ]);
+                return $"Webhook set to {config.Value.Url + route}";
             });
             botApi.MapPost("/", OnUpdate).AddEndpointFilter(async (context, next) =>
             {
+                var headers = context.HttpContext.Request.Headers;
+                if (!headers.TryGetValue("X-Telegram-Bot-Api-Secret-Token", out var secret))
+                    return Results.BadRequest();
+
                 var config = context.HttpContext.RequestServices.GetRequiredService<IOptions<TelegramConfig>>().Value;
+                if (secret != config.Secret)
+                    return Results.BadRequest();
+
                 var updateDto = context.GetArgument<Update>(1);
 
                 if (updateDto?.Message?.Text is null)
                     return Results.Ok();
+
                 if (updateDto.Message.From?.Id is null || !config.AllowedUsers.Contains(updateDto.Message.From.Id))
                     return Results.Ok();
 
@@ -31,27 +48,15 @@ namespace HikariNoShisai.WebAPI.Endpoints
             });
         }
 
-        static async void OnUpdate(TelegramBotClient bot, Update update)
+        static async Task OnUpdate(TelegramBotClient bot, Update update, ITelegramService telegramService)
         {
-            if (update.Message is null) return;         // we want only updates about new Message
-            if (update.Message.Text is null) return;    // we want only updates about new Text Message
             var msg = update.Message;
             Console.WriteLine($"Received message '{msg.Text}' in {msg.Chat}");
-            // let's echo back received text in the chat
-            await bot.SendMessage(
-                msg.Chat,
-                $"{msg.From} said: {msg.Text}",
-                replyMarkup: new string[][]
-                {
-                    ["Help me"],
-                    ["Call me ☎️", "Write me ✉️"],
-                    ["😊", "😂", "❤️", "👍", "🎉"],
-                    ["Custom Keyboard Markup"],
-                    ["Telegram Bot API is awesome!"],
-                    ["Inline Keyboard Markup"],
-                    ["Telegram Bots are super cool!"],
-                    ["Visit Telegram", "https://telegram.org"]
-                });
+
+            var response = await telegramService.Handle(msg.Text!);
+
+
+            await bot.SendHtml(msg.Chat, response);
         }
     }
 }

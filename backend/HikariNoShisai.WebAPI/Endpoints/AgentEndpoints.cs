@@ -1,8 +1,5 @@
-﻿using HikariNoShisai.Common.Entities;
-using HikariNoShisai.DAL;
+﻿using HikariNoShisai.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Query.Internal;
-using System;
 
 namespace HikariNoShisai.WebAPI.Endpoints
 {
@@ -11,14 +8,12 @@ namespace HikariNoShisai.WebAPI.Endpoints
         public static void MapAgentEndpoints(this WebApplication app)
         {
             var agentsApi = app.MapGroup("/agents");
-            agentsApi.MapGet("/", (HikariNoShisaiContext context) => GetAgentCount(context).ToString())
-                     .WithName("GetAgents");
+            agentsApi.MapGet("/", async (IAgentService agentService) => {
+                var all = await agentService.GetAll();
+                return Results.Ok("List of agents " + all.Count());
+            }).WithName("GetAgents");
             agentsApi.MapGet("/{id}", (int id) => $"Agent with ID: {id}")
                      .WithName("GetAgentById");
         }
-
-        public static readonly Func<HikariNoShisaiContext, int> GetAgentCount =
-            EF.CompileQuery((HikariNoShisaiContext db) =>
-                db.Agents.Count());
     }
 }

@@ -29,6 +29,9 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 builder.Services.AddHttpClient("tgwebhook").RemoveAllLoggers()
     .AddTypedClient(httpClient => new TelegramBotClient(builder.Configuration["Telegram:Token"]!, httpClient));
 builder.Services.AddTransient<IAgentTerminalService, AgentTerminalService>();
+builder.Services.AddTransient<IAgentService, AgentService>();
+builder.Services.AddTransient<ITelegramService, TelegramService>();
+
 
 var app = builder.Build();
 if (app.Environment.IsDevelopment())

@@ -16,7 +16,7 @@ namespace HikariNoShisai.DAL.CompiledModels
     public partial class HikariNoShisaiContextModel
     {
         private HikariNoShisaiContextModel()
-            : base(skipDetectChanges: false, modelId: new Guid("1e6fb99b-2286-494a-8552-4511a64a925c"), entityTypeCount: 3)
+            : base(skipDetectChanges: false, modelId: new Guid("f151d351-9c4e-4b79-a44c-aae525ea9705"), entityTypeCount: 3)
         {
         }
 

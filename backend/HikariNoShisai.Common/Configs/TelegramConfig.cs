@@ -4,6 +4,7 @@
     {
         public required string Token { get; set; }
         public required string Url { get; set; }
+        public required string Secret { get; set; }
         public required List<long> AllowedUsers { get; set; }
     }
 }
