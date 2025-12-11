@@ -15,9 +15,15 @@ Accept: application/json
 #endregion
 
 #region Statistics
-
-GET {{HikariNoShisai.WebAPI_HostAddress}}/Statistics/
+POST {{HikariNoShisai.WebAPI_HostAddress}}/Statistics
 Accept: application/json
+Content-Type: application/json
+x-api-key: mysupersecretkey
+
+{
+  "agent_id": "00000000-0000-0000-0000-000000000001",
+  "is_grid_available": true
+}
 
 ###
 

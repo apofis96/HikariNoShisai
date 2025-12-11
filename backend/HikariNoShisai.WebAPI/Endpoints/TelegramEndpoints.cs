@@ -51,10 +51,17 @@ namespace HikariNoShisai.WebAPI.Endpoints
         static async Task OnUpdate(TelegramBotClient bot, Update update, ITelegramService telegramService)
         {
             var msg = update.Message;
-            Console.WriteLine($"Received message '{msg.Text}' in {msg.Chat}");
+            if (msg is null)
+                return;
+            string response;
 
-            var response = await telegramService.Handle(msg.Text!);
-
+            try
+            {
+                response = await telegramService.Handle(msg.Text!);
+            } catch (Exception ex)
+            {
+                response = $"An error occurred: {ex.Message}";
+            }
 
             await bot.SendHtml(msg.Chat, response);
         }

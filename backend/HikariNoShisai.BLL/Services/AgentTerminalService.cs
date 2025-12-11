@@ -28,6 +28,16 @@ namespace HikariNoShisai.BLL.Services
             await _context.SaveChangesAsync();
         }
 
+        public async Task ToggleAgentTerminalStatus(Guid agentId, Guid terminalId)
+        {
+            var terminal = await GetAgentTerminal(_context, agentId, terminalId);
+            if (terminal is null)
+                return;
+
+            terminal.IsActive = !terminal.IsActive;
+            await _context.SaveChangesAsync();
+        }
+
         private static readonly Func<HikariNoShisaiContext, Guid, Guid, Task<AgentTerminal?>> GetAgentTerminal =
         EF.CompileAsyncQuery((HikariNoShisaiContext context, Guid agentId, Guid terminalId) =>
             context.AgentTerminals

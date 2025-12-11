@@ -1,12 +1,34 @@
-﻿using HikariNoShisai.Common.Interfaces;
+﻿using HikariNoShisai.Common.Constants;
+using HikariNoShisai.Common.Interfaces;
 
 namespace HikariNoShisai.BLL.Services
 {
-    public class TelegramService(IAgentService agentService) : ITelegramService
+    public class TelegramService(IAgentService agentService, IAgentTerminalService agentTerminal) : ITelegramService
     {
         private readonly IAgentService _agentService = agentService;
+        private readonly IAgentTerminalService _agentTerminal = agentTerminal;
 
         public async Task<string> Handle(string message)
+        {
+            if (message.StartsWith('/'))
+                return await ParseCommand(message[1..]);
+
+            return "Invalid command format.";
+        }
+
+        private Task<string> ParseCommand(string message)
+        {
+            var parts = message.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            return parts[0] switch
+            {
+                TelegramCommands.ShowAll => ShowAllCommand(),
+                TelegramCommands.Toggle when parts.Length == 3 => CommandExecute(() => _agentTerminal.ToggleAgentTerminalStatus(Guid.Parse(parts[1]), Guid.Parse(parts[2]))),
+                _ => Task.FromResult("Unknown command or invalid parameters.")
+            };
+        }
+
+        private async Task<string> ShowAllCommand()
         {
             var agents = await _agentService.GetAll();
             var result = "Agents:\n";
@@ -20,6 +42,13 @@ namespace HikariNoShisai.BLL.Services
             }
 
             return result;
+        }
+
+        private async Task<string> CommandExecute(Func<Task> action)
+        {
+            await action();
+
+            return "Command executed successfully.";
         }
     }
 }

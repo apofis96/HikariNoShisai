@@ -8,5 +8,6 @@ namespace HikariNoShisai.WebAPI
     [JsonSerializable(typeof(bool))]
     [JsonSerializable(typeof(AgentTerminalRequest))]
     [JsonSerializable(typeof(AgentTerminalStatusPatch))]
+    [JsonSerializable(typeof(AgentStatusLogRequest))]
     public partial class AppJsonContext : JsonSerializerContext {}
 }
