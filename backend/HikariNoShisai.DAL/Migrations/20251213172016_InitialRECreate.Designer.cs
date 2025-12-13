@@ -11,14 +11,14 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HikariNoShisai.DAL.Migrations
 {
     [DbContext(typeof(HikariNoShisaiContext))]
-    [Migration("20251118165716_AddAgentSubEntities")]
-    partial class AddAgentSubEntities
+    [Migration("20251213172016_InitialRECreate")]
+    partial class InitialRECreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.1");
 
             modelBuilder.Entity("HikariNoShisai.Common.Entities.Agent", b =>
                 {

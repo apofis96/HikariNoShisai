@@ -11,14 +11,9 @@ namespace HikariNoShisai.BLL.Services
 
         public async Task<IEnumerable<Agent>> GetAll()
         {
-            var terminals = await GetAgents(_context).ToListAsync();
+            var terminals = _context.Agents.Include(x => x.Terminals).AsNoTracking();
 
             return terminals;
         }
-
-        private static readonly Func<HikariNoShisaiContext, IAsyncEnumerable<Agent>> GetAgents =
-        EF.CompileAsyncQuery((HikariNoShisaiContext context) =>
-            context.Agents.Include(x => x.Terminals).AsNoTracking()
-        );
     }
 }

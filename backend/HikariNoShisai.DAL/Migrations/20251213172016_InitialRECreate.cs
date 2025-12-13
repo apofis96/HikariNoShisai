@@ -6,17 +6,25 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace HikariNoShisai.DAL.Migrations
 {
     /// <inheritdoc />
-    public partial class AddAgentSubEntities : Migration
+    public partial class InitialRECreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "Name",
-                table: "Agents",
-                type: "TEXT",
-                nullable: false,
-                defaultValue: "");
+            migrationBuilder.CreateTable(
+                name: "Agents",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    Name = table.Column<string>(type: "TEXT", nullable: false),
+                    Description = table.Column<string>(type: "TEXT", nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Agents", x => x.Id);
+                });
 
             migrationBuilder.CreateTable(
                 name: "AgentStatusLogs",
@@ -84,9 +92,8 @@ namespace HikariNoShisai.DAL.Migrations
             migrationBuilder.DropTable(
                 name: "AgentTerminals");
 
-            migrationBuilder.DropColumn(
-                name: "Name",
-                table: "Agents");
+            migrationBuilder.DropTable(
+                name: "Agents");
         }
     }
 }

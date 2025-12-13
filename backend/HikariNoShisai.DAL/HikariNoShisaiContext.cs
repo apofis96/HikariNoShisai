@@ -1,7 +1,5 @@
 ﻿using HikariNoShisai.Common.Entities;
-using HikariNoShisai.DAL.CompiledModels;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace HikariNoShisai.DAL
 {
@@ -10,8 +8,6 @@ namespace HikariNoShisai.DAL
         public DbSet<Agent> Agents => Set<Agent>();
         public DbSet<AgentTerminal> AgentTerminals => Set<AgentTerminal>();
         public DbSet<AgentStatusLog> AgentStatusLogs => Set<AgentStatusLog>();
-
-        public static readonly IModel CompiledModel = HikariNoShisaiContextModel.Instance;
 
         public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = new())
         {
