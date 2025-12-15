@@ -7,7 +7,7 @@ namespace HikariNoShisai.WebAPI.Endpoints
     {
         public static void MapAgentEndpoints(this WebApplication app)
         {
-            var agentsApi = app.MapGroup("/agents");
+            var agentsApi = app.MapGroup("/agents").RequireAuthorization();
             agentsApi.MapGet("/", async (IAgentService agentService) => {
                 var all = await agentService.GetAll();
                 return Results.Ok("List of agents " + all.Count());

@@ -6,6 +6,7 @@ using HikariNoShisai.WebAPI.Endpoints;
 using HikariNoShisai.WebAPI.Extensions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json.Serialization.Metadata;
 using Telegram.Bot;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,6 +15,15 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddAuthentication("ApiKey")
     .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthHandler>("ApiKey", _ => { });
+
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.TypeInfoResolver =
+        JsonTypeInfoResolver.Combine(
+            AppJsonContext.Default,
+            new DefaultJsonTypeInfoResolver()
+        );
+});
 
 builder.Services.AddAuthorization();
 
