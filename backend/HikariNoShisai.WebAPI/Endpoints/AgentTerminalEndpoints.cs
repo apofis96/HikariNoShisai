@@ -8,8 +8,9 @@ namespace HikariNoShisai.WebAPI.Endpoints
         public static void MapAgentTerminalEndpoints(this WebApplication app)
         {
             var agentTerminalsApi = app.MapGroup("/terminal").RequireAuthorization();
-            agentTerminalsApi.MapGet("/", async ([AsParameters] AgentTerminalRequest test, IAgentTerminalService agentTerminalService) =>
+            agentTerminalsApi.MapGet("/", async ([AsParameters] AgentTerminalRequest test, IAgentTerminalService agentTerminalService, IAgentWatchdog agentWatchdog) =>
             {
+                agentWatchdog.Update(test.AgentId);
                 var status = await agentTerminalService.GetAgentTerminalStatus(test.AgentId, test.TerminalId);
 
                 return Results.Ok("<"+status+">");

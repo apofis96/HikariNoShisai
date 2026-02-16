@@ -1,7 +1,9 @@
+using HikariNoShisai.BLL.Infrastructure;
 using HikariNoShisai.BLL.Services;
 using HikariNoShisai.Common.Configs;
 using HikariNoShisai.Common.Interfaces;
 using HikariNoShisai.DAL;
+using HikariNoShisai.WebAPI.BackgroundServices;
 using HikariNoShisai.WebAPI.Endpoints;
 using HikariNoShisai.WebAPI.Extensions;
 using Microsoft.AspNetCore.Authentication;
@@ -41,6 +43,11 @@ builder.Services.AddTransient<IAgentTerminalService, AgentTerminalService>();
 builder.Services.AddTransient<IAgentService, AgentService>();
 builder.Services.AddTransient<ITelegramService, TelegramService>();
 builder.Services.AddTransient<IAgentStatusLogService, AgentStatusLogService>();
+builder.Services.AddTransient<IMessageQueue, MessageQueue>();
+builder.Services.AddTransient<IAgentWatchdog, AgentWatchdog>();
+builder.Services.AddHostedService<AgentWatchdogBackgroundService>();
+builder.Services.AddHostedService<NotificationsBackgroundService>();
+
 
 var app = builder.Build();
 

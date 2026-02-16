@@ -15,5 +15,15 @@ namespace HikariNoShisai.BLL.Services
 
             return terminals;
         }
+
+        public async Task<string?> GetNameById(Guid agentId)
+        {
+            var agentName = await _context.Agents
+                .Where(x => x.Id == agentId)
+                .Select(x => x.Name)
+                .FirstOrDefaultAsync();
+
+            return agentName;
+        }
     }
 }
