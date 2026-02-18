@@ -1,19 +1,14 @@
-﻿using HikariNoShisai.BLL.Infrastructure;
-using HikariNoShisai.BLL.Services;
-using HikariNoShisai.Common.Constants;
+﻿using HikariNoShisai.Common.Constants;
 using HikariNoShisai.Common.Interfaces;
 using HikariNoShisai.Common.Models;
-using Microsoft.Extensions.Logging;
 
 namespace HikariNoShisai.WebAPI.BackgroundServices
 {
-    public class NotificationsBackgroundServiceIAgentWatchdog(
-        IMessageQueue messageQueue,
-        IAgentService agentService,
+    public class NotificationsBackgroundService(
+        IServiceScopeFactory scopeFactory,
         ILogger<AgentWatchdogBackgroundService> logger) : BackgroundService
     {
-        private readonly IMessageQueue _messageQueue = messageQueue;
-        private readonly IAgentService _agentService = agentService;
+        private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
         private readonly ILogger<AgentWatchdogBackgroundService> _logger = logger;
         private readonly TimeSpan _agentTimeout = TimeSpan.FromMinutes(3);
 
@@ -25,12 +20,17 @@ namespace HikariNoShisai.WebAPI.BackgroundServices
             {
                 try
                 {
-                    var expiredAgentIds = _agentWatchdog.GetExpired(_agentTimeout);
+                    using var scope = _scopeFactory.CreateScope();
+                    var agentService = scope.ServiceProvider.GetRequiredService<IAgentService>();
+                    var agentWatchdog = scope.ServiceProvider.GetRequiredService<IAgentWatchdog>();
+                    var messageQueue = scope.ServiceProvider.GetRequiredService<IMessageQueue>();
+
+                    var expiredAgentIds = agentWatchdog.GetExpired(_agentTimeout);
 
                     foreach (var agentId in expiredAgentIds)
                     {
-                        var name = await _agentService.GetNameById(agentId);
-                        _messageQueue.Send(MessageTopics.TelegramNotification, new TelegramNotification { Message = string.Format(TextConstants.AgentOfflineTemplate, name) });
+                        var name = await agentService.GetNameById(agentId);
+                        messageQueue.Send(MessageTopics.TelegramNotification, new TelegramNotification { Message = string.Format(TextConstants.AgentOfflineTemplate, name) });
                     }
                 }
                 catch (OperationCanceledException)

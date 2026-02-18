@@ -45,6 +45,7 @@ builder.Services.AddTransient<ITelegramService, TelegramService>();
 builder.Services.AddTransient<IAgentStatusLogService, AgentStatusLogService>();
 builder.Services.AddTransient<IMessageQueue, MessageQueue>();
 builder.Services.AddTransient<IAgentWatchdog, AgentWatchdog>();
+builder.Services.AddTransient<IUserService, UserService>();
 builder.Services.AddHostedService<AgentWatchdogBackgroundService>();
 builder.Services.AddHostedService<NotificationsBackgroundService>();
 

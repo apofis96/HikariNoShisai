@@ -3,7 +3,9 @@ using HikariNoShisai.Common.Interfaces;
 
 namespace HikariNoShisai.BLL.Services
 {
-    public class TelegramService(IAgentService agentService, IAgentTerminalService agentTerminal) : ITelegramService
+    public class TelegramService(
+        IAgentService agentService,
+        IAgentTerminalService agentTerminal) : ITelegramService
     {
         private readonly IAgentService _agentService = agentService;
         private readonly IAgentTerminalService _agentTerminal = agentTerminal;

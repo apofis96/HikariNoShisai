@@ -21,6 +21,7 @@ namespace HikariNoShisai.WebAPI.Endpoints
                 await bot.SetWebhook(config.Value.Url + route, secretToken: config.Value.Secret);
                 await bot.SetMyCommands(
                 [
+                    new BotCommand { Command = TelegramCommands.Start, Description = "Start the bot" },
                     new BotCommand { Command = TelegramCommands.ShowAll, Description = "Show all terminals" },
                     new BotCommand { Command = TelegramCommands.Toggle, Description = "Toggle [terminal]" },
                 ]);
@@ -48,7 +49,7 @@ namespace HikariNoShisai.WebAPI.Endpoints
             });
         }
 
-        static async Task OnUpdate(TelegramBotClient bot, Update update, ITelegramService telegramService)
+        static async Task OnUpdate(TelegramBotClient bot, Update update, ITelegramService telegramService, IUserService userService)
         {
             var msg = update.Message;
             if (msg is null)
@@ -57,7 +58,13 @@ namespace HikariNoShisai.WebAPI.Endpoints
 
             try
             {
-                response = await telegramService.Handle(msg.Text!);
+                if (msg.Text! == TelegramCommands.Start)
+                {
+                    await userService.Create(msg.From!.Id, msg.Chat.Id);
+                    response = "Welcome to Hikari no Shisai!";
+                }
+                else
+                    response = await telegramService.Handle(msg.Text!);
             } catch (Exception ex)
             {
                 response = $"An error occurred: {ex.Message}";
