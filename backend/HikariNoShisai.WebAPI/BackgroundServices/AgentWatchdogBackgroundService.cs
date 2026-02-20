@@ -30,9 +30,13 @@ namespace HikariNoShisai.WebAPI.BackgroundServices
                     foreach (var agentId in expiredAgentIds)
                     {
                         var name = await agentService.GetNameById(agentId);
-                        messageQueue.Send(MessageTopics.TelegramNotification, new TelegramNotification { Message = string.Format(TextConstants.AgentOfflineTemplate, name) });
+                        messageQueue.Send(
+                            MessageTopics.TelegramNotification,
+                            new TelegramNotification {
+                                Message = string.Format(TextConstants.AgentOfflineTemplate, name),
+                                IsVerbose = true
+                            });
                     }
-
                 }
                 catch (OperationCanceledException)
                 {}

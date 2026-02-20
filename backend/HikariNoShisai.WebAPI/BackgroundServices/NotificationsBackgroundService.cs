@@ -1,16 +1,17 @@
 ﻿using HikariNoShisai.Common.Constants;
 using HikariNoShisai.Common.Interfaces;
 using HikariNoShisai.Common.Models;
+using Telegram.Bot;
+using Telegram.Bot.Extensions;
 
 namespace HikariNoShisai.WebAPI.BackgroundServices
 {
     public class NotificationsBackgroundService(
         IServiceScopeFactory scopeFactory,
-        ILogger<AgentWatchdogBackgroundService> logger) : BackgroundService
+        ILogger<NotificationsBackgroundService> logger) : BackgroundService
     {
         private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
-        private readonly ILogger<AgentWatchdogBackgroundService> _logger = logger;
-        private readonly TimeSpan _agentTimeout = TimeSpan.FromMinutes(3);
+        private readonly ILogger<NotificationsBackgroundService> _logger = logger;
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
@@ -21,16 +22,42 @@ namespace HikariNoShisai.WebAPI.BackgroundServices
                 try
                 {
                     using var scope = _scopeFactory.CreateScope();
-                    var agentService = scope.ServiceProvider.GetRequiredService<IAgentService>();
-                    var agentWatchdog = scope.ServiceProvider.GetRequiredService<IAgentWatchdog>();
+                    var userService = scope.ServiceProvider.GetRequiredService<IUserService>();
+                    var telegramClient = scope.ServiceProvider.GetRequiredService<TelegramBotClient>();
                     var messageQueue = scope.ServiceProvider.GetRequiredService<IMessageQueue>();
 
-                    var expiredAgentIds = agentWatchdog.GetExpired(_agentTimeout);
-
-                    foreach (var agentId in expiredAgentIds)
+                    var notifications = messageQueue.ReciveAll<TelegramNotification>(MessageTopics.TelegramNotification)?.Select(x => x.Data);
+                    if (notifications is null || !notifications.Any())
                     {
-                        var name = await agentService.GetNameById(agentId);
-                        messageQueue.Send(MessageTopics.TelegramNotification, new TelegramNotification { Message = string.Format(TextConstants.AgentOfflineTemplate, name) });
+                        continue;
+                    }
+
+                    var verboseNotifications = notifications.Where(n => n.IsVerbose);
+                    var nonVerboseNotifications = notifications.Where(n => !n.IsVerbose);
+
+                    if (verboseNotifications.Any())
+                    {
+                        var chatIds = await userService.GetChatIds(UserSettings.VerboseNotifications | UserSettings.NotificationsEnabled);
+
+                        foreach (var notification in verboseNotifications)
+                        {
+                            foreach (var chatId in chatIds)
+                            {
+                                await telegramClient.SendHtml(chatId, notification.Message);
+                            }
+                        }
+                    }
+
+                    if (nonVerboseNotifications.Any())
+                    {
+                        var chatIds = await userService.GetChatIds(UserSettings.NotificationsEnabled);
+                        foreach (var notification in nonVerboseNotifications)
+                        {
+                            foreach (var chatId in chatIds)
+                            {
+                                await telegramClient.SendHtml(chatId, notification.Message);
+                            }
+                        }
                     }
                 }
                 catch (OperationCanceledException)

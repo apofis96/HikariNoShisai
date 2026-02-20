@@ -6,6 +6,7 @@ namespace HikariNoShisai.Common.Interfaces
     {
         void Send<T>(string topic, T message);
         public Message<T>? Recive<T>(string topic);
+        IEnumerable<Message<T>>? ReciveAll<T>(string topic);
         void Clear(string topic);
         void ClearAll();
     }

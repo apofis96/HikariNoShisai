@@ -39,7 +39,8 @@ namespace HikariNoShisai.BLL.Services
                 {
                     var gridStatusNotification = new TelegramNotification
                     {
-                        Message = string.Format(TextConstants.GridMessageTemplate, statusLog.IsGridAvailable ? "Available" : "Not Available")
+                        Message = string.Format(TextConstants.GridMessageTemplate, statusLog.IsGridAvailable ? "Available" : "Not Available"),
+                        IsVerbose = false
                     };
                     _messageQueue.Send(MessageTopics.TelegramNotification, gridStatusNotification);
                 }

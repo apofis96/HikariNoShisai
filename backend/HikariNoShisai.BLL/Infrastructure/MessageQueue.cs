@@ -37,6 +37,21 @@ namespace HikariNoShisai.BLL.Infrastructure
             return null;
         }
 
+        public IEnumerable<Message<T>>? ReciveAll<T>(string topic)
+        {
+            if (string.IsNullOrWhiteSpace(topic))
+                throw new ArgumentException("Topic cannot be null or empty", nameof(topic));
+
+            var messages = new List<Message<T>>();
+
+            if (_queues.TryGetValue(topic, out var queue))
+                while (queue.TryDequeue(out object? item))
+                    if (item is Message<T> message)
+                        messages.Add(message);
+
+            return messages;
+        }
+
         public void Clear(string topic)
         {
             _queues.TryRemove(topic, out _);
