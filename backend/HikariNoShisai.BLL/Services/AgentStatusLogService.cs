@@ -31,8 +31,8 @@ namespace HikariNoShisai.BLL.Services
 
         private async Task EmitGridNotification(AgentStatusLogRequest statusLog)
         {
-            var lastGridStaatus = _context.AgentStatusLogs.OrderByDescending(x => x.CreatedAt).Select(x => x.IsGridAvailable).FirstOrDefault();
-            if (lastGridStaatus != statusLog.IsGridAvailable)
+            var lastGridStatus = _context.AgentStatusLogs.OrderByDescending(x => x.CreatedAt).Select(x => x.IsGridAvailable).FirstOrDefault();
+            if (lastGridStatus != statusLog.IsGridAvailable)
             {
                 var agent = await _context.Agents.FirstOrDefaultAsync(x => x.Id == statusLog.AgentId);
                 if (agent is not null)
