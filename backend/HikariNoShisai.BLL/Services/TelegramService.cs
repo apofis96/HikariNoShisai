@@ -13,7 +13,7 @@ namespace HikariNoShisai.BLL.Services
         public async Task<string> Handle(string message)
         {
             if (message.StartsWith('/'))
-                return await ParseCommand(message[1..]);
+                return await ParseCommand(message);
 
             return "Invalid command format.";
         }
