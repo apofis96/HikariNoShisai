@@ -10,7 +10,7 @@ namespace HikariNoShisai.BLL.Services
     {
         private readonly HikariNoShisaiContext _context = context;
 
-        public async Task Create(long userId, long chatId)
+        public async Task Create(long userId, long chatId, string language)
         {
             var existedUser = await _context.Users.FirstOrDefaultAsync(x => x.UserId == userId);
             if (existedUser is not null)
@@ -23,7 +23,8 @@ namespace HikariNoShisai.BLL.Services
                 {
                     Id = Guid.NewGuid(),
                     UserId = userId,
-                    ChatId = chatId
+                    ChatId = chatId,
+                    Language = language,
                 });
             }
 

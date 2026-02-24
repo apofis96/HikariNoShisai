@@ -1,7 +1,6 @@
 ﻿using HikariNoShisai.Common.Configs;
 using HikariNoShisai.Common.Constants;
 using HikariNoShisai.Common.Interfaces;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Telegram.Bot;
 using Telegram.Bot.Extensions;
@@ -60,7 +59,7 @@ namespace HikariNoShisai.WebAPI.Endpoints
             {
                 if (msg.Text! == TelegramCommands.Start)
                 {
-                    await userService.Create(msg.From!.Id, msg.Chat.Id);
+                    await userService.Create(msg.From!.Id, msg.Chat.Id, msg.From.LanguageCode ?? LanguageCodes.English);
                     response = "Welcome to Hikari no Shisai!";
                 }
                 else
