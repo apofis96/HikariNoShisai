@@ -36,6 +36,12 @@ namespace HikariNoShisai.DAL
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            var utcConverter = new ValueConverter<DateTimeOffset, DateTimeOffset>(
+                toDb => toDb.ToUniversalTime(),
+                fromDb => fromDb.ToUniversalTime()
+            );
+            var combinedConverter = utcConverter.ComposeWith(new DateTimeOffsetToBinaryConverter());
+
             foreach (var entityType in modelBuilder.Model.GetEntityTypes())
             {
                 var properties = entityType.ClrType.GetProperties()
@@ -46,7 +52,7 @@ namespace HikariNoShisai.DAL
                 {
                     modelBuilder.Entity(entityType.Name)
                         .Property(property.Name)
-                        .HasConversion(new DateTimeOffsetToBinaryConverter());
+                        .HasConversion(combinedConverter);
                 }
             }
         }

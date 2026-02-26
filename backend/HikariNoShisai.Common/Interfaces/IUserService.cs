@@ -1,4 +1,5 @@
 ﻿using HikariNoShisai.Common.Constants;
+using HikariNoShisai.Common.Entities;
 
 namespace HikariNoShisai.Common.Interfaces
 {
@@ -8,6 +9,6 @@ namespace HikariNoShisai.Common.Interfaces
         Task<UserSettings> GetSettings(long userId);
         Task AddSettings(long userId, UserSettings settings);
         Task RemoveSettings(long userId, UserSettings settings);
-        Task<IEnumerable<long>> GetChatIds(UserSettings settings);
+        Task<IEnumerable<User>> GetUsers(UserSettings settings);
     }
 }

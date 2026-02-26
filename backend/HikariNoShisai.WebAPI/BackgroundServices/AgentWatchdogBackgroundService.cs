@@ -29,11 +29,12 @@ namespace HikariNoShisai.WebAPI.BackgroundServices
 
                     foreach (var agentId in expiredAgentIds)
                     {
-                        var name = await agentService.GetNameById(agentId);
+                        var name = await agentService.GetNameById(agentId) ?? "";
                         messageQueue.Send(
                             MessageTopics.TelegramNotification,
                             new TelegramNotification {
-                                Message = string.Format(TextConstants.AgentOfflineTemplate, name),
+                                Template = TextConstants.MessageTemplate.AgentAlert,
+                                Values = [name],
                                 IsVerbose = true
                             });
                     }

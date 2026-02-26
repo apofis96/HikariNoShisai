@@ -1,6 +1,7 @@
 ﻿using HikariNoShisai.Common.Constants;
 using HikariNoShisai.Common.DTO;
 using HikariNoShisai.Common.Entities;
+using HikariNoShisai.Common.Helpers;
 using HikariNoShisai.Common.Interfaces;
 using HikariNoShisai.Common.Models;
 using HikariNoShisai.DAL;
@@ -15,7 +16,8 @@ namespace HikariNoShisai.BLL.Services
 
         public async Task Create(AgentStatusLogRequest statusLog)
         {
-            await EmitGridNotification(statusLog);
+            var dateNow = DateTimeOffset.UtcNow;
+            await EmitGridNotification(statusLog, dateNow);
 
             _context.AgentStatusLogs.Add(new AgentStatusLog
             {
@@ -23,23 +25,24 @@ namespace HikariNoShisai.BLL.Services
                 IsGridAvailable = statusLog.IsGridAvailable,
                 GridVoltage = statusLog.GridVoltage,
                 BatteryVoltage = statusLog.BatteryVoltage,
-                CreatedAt = DateTimeOffset.UtcNow
+                CreatedAt = dateNow,
             });
             
             await _context.SaveChangesAsync();
         }
 
-        private async Task EmitGridNotification(AgentStatusLogRequest statusLog)
+        private async Task EmitGridNotification(AgentStatusLogRequest statusLog, DateTimeOffset dateNow)
         {
-            var lastGridStatus = _context.AgentStatusLogs.OrderByDescending(x => x.CreatedAt).Select(x => x.IsGridAvailable).FirstOrDefault();
-            if (lastGridStatus != statusLog.IsGridAvailable)
+            var lastAgentStatus = _context.AgentStatusLogs.OrderByDescending(x => x.CreatedAt).FirstOrDefault();
+            if (lastAgentStatus is not null && lastAgentStatus.IsGridAvailable != statusLog.IsGridAvailable)
             {
                 var agent = await _context.Agents.FirstOrDefaultAsync(x => x.Id == statusLog.AgentId);
                 if (agent is not null)
                 {
                     var gridStatusNotification = new TelegramNotification
                     {
-                        Message = string.Format(TextConstants.GridMessageTemplate, statusLog.IsGridAvailable ? "Available" : "Not Available"),
+                        Template = statusLog.IsGridAvailable ? TextConstants.MessageTemplate.GridOnline : TextConstants.MessageTemplate.GridOffline,
+                        Values = [StringHelpers.FormatDuration(dateNow - lastAgentStatus.CreatedAt)],
                         IsVerbose = false
                     };
                     _messageQueue.Send(MessageTopics.TelegramNotification, gridStatusNotification);

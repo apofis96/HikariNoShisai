@@ -1,4 +1,5 @@
 ﻿using HikariNoShisai.Common.Constants;
+using HikariNoShisai.Common.Helpers;
 using HikariNoShisai.Common.Interfaces;
 using HikariNoShisai.Common.Models;
 using Telegram.Bot;
@@ -32,32 +33,23 @@ namespace HikariNoShisai.WebAPI.BackgroundServices
                         continue;
                     }
 
-                    var verboseNotifications = notifications.Where(n => n.IsVerbose);
-                    var nonVerboseNotifications = notifications.Where(n => !n.IsVerbose);
+                    var users = await userService.GetUsers(UserSettings.NotificationsEnabled);
 
-                    if (verboseNotifications.Any())
+                    foreach (var user in users)
                     {
-                        var chatIds = await userService.GetChatIds(UserSettings.VerboseNotifications | UserSettings.NotificationsEnabled);
-
-                        foreach (var notification in verboseNotifications)
+                        var isUserVerbose = ((UserSettings)user.Settings).HasFlag(UserSettings.VerboseNotifications);
+                        foreach (var notification in notifications)
                         {
-                            foreach (var chatId in chatIds)
+                            if (notification.IsVerbose && !isUserVerbose)
                             {
-                                await telegramClient.SendHtml(chatId, notification.Message);
+                                continue;
                             }
-                        }
-                    }
 
-                    if (nonVerboseNotifications.Any())
-                    {
-                        var chatIds = await userService.GetChatIds(UserSettings.NotificationsEnabled);
-                        foreach (var notification in nonVerboseNotifications)
-                        {
-                            foreach (var chatId in chatIds)
-                            {
-                                await telegramClient.SendHtml(chatId, notification.Message);
-                            }
+                            var message = TextConstants.GetMessageFromTemplate(notification.Template, user.Language);
+
+                            await telegramClient.SendHtml(user.ChatId, StringHelpers.ReplacePlaceholder(message, notification.Values));
                         }
+
                     }
                 }
                 catch (OperationCanceledException)

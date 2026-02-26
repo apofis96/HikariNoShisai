@@ -60,16 +60,16 @@ namespace HikariNoShisai.BLL.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task<IEnumerable<long>> GetChatIds(UserSettings settings)
+        public async Task<IEnumerable<User>> GetUsers(UserSettings settings)
         {
             long mask = (long)settings;
 
-            var chatIds = await _context.Users
+            var users = await _context.Users
                 .Where(x => (x.Settings & mask) == mask)
-                .Select(x => x.ChatId)
+                .AsNoTracking()
                 .ToListAsync();
 
-            return chatIds;
+            return users;
         }
     }
 }
