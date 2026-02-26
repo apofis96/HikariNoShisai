@@ -42,7 +42,7 @@ namespace HikariNoShisai.BLL.Services
                     var gridStatusNotification = new TelegramNotification
                     {
                         Template = statusLog.IsGridAvailable ? TextConstants.MessageTemplate.GridOnline : TextConstants.MessageTemplate.GridOffline,
-                        Values = [StringHelpers.FormatDuration(dateNow - lastAgentStatus.CreatedAt)],
+                        Values = [dateNow.ToString(), StringHelpers.FormatDuration(dateNow - lastAgentStatus.CreatedAt)],
                         IsVerbose = false
                     };
                     _messageQueue.Send(MessageTopics.TelegramNotification, gridStatusNotification);
