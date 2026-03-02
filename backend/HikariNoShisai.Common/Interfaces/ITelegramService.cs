@@ -2,6 +2,6 @@
 {
     public interface ITelegramService
     {
-        Task<string> Handle(string message);
+        Task<string> Handle(long userId, string message);
     }
 }

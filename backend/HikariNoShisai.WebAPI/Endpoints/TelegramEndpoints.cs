@@ -51,22 +51,38 @@ namespace HikariNoShisai.WebAPI.Endpoints
         static async Task OnUpdate(TelegramBotClient bot, Update update, ITelegramService telegramService, IUserService userService)
         {
             var msg = update.Message;
-            if (msg is null)
+            if (msg is null || msg.Text is null || msg.From is null)
                 return;
+
+            var userId = msg.From.Id;
             string response;
 
             try
             {
-                if (msg.Text! == TelegramCommands.Start)
+                if (msg.Text == TelegramCommands.Start)
                 {
-                    await userService.Create(msg.From!.Id, msg.Chat.Id, msg.From.LanguageCode ?? LanguageCodes.English);
-                    response = "Welcome to Hikari no Shisai!";
+                    var userLanguage = msg.From.LanguageCode ?? LanguageCodes.English;
+                    await userService.Create(userId, msg.Chat.Id, userLanguage);
+                    response = TextConstants.GetMessageFromTemplate(TextConstants.MessageTemplate.WelcomeMessage, userLanguage);
                 }
                 else
-                    response = await telegramService.Handle(msg.Text!);
-            } catch (Exception ex)
+                {
+                    response = await telegramService.Handle(userId, msg.Text);
+                }
+            }
+            catch (Exception ex)
             {
-                response = $"An error occurred: {ex.Message}";
+                try
+                {
+                    var isVerbose = await userService.CheckUserSettings(userId, UserSettings.VerboseNotifications);
+                    response = "An error occurred";
+                    if (isVerbose)
+                        response += $": {ex.Message}";
+                }
+                catch (Exception exx)
+                {
+                    response = $"An error occurred while checking user settings: {exx.Message}\n\nOriginal error {ex.Message}";
+                }
             }
 
             await bot.SendHtml(msg.Chat, response);

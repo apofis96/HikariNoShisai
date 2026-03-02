@@ -10,5 +10,7 @@ namespace HikariNoShisai.Common.Interfaces
         Task AddSettings(long userId, UserSettings settings);
         Task RemoveSettings(long userId, UserSettings settings);
         Task<IEnumerable<User>> GetUsers(UserSettings settings);
+        Task<string> GetLanguageByUserId(long userId);
+        Task<bool> CheckUserSettings(long userId, UserSettings settings);
     }
 }

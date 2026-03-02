@@ -71,5 +71,19 @@ namespace HikariNoShisai.BLL.Services
 
             return users;
         }
+
+        public async Task<string> GetLanguageByUserId(long userId)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(x => x.UserId == userId);
+            return user?.Language ?? LanguageCodes.English;
+        }
+
+        public async Task<bool> CheckUserSettings(long userId, UserSettings settings)
+        {
+            long mask = (long)settings;
+            var user = await _context.Users.FirstOrDefaultAsync(x => x.UserId == userId);
+
+            return user is not null && (user.Settings & mask) == mask;
+        }
     }
 }
