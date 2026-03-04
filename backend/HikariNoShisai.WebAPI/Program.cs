@@ -37,6 +37,7 @@ builder.Services.Configure<AppConfig>(
 builder.Services.AddDbContext<HikariNoShisaiContext>(options =>
     options.UseSqlite("Data Source=app.db"));
 
+builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient("tgwebhook").RemoveAllLoggers()
     .AddTypedClient(httpClient => new TelegramBotClient(builder.Configuration["Telegram:Token"]!, httpClient));
 builder.Services.AddTransient<IAgentTerminalService, AgentTerminalService>();

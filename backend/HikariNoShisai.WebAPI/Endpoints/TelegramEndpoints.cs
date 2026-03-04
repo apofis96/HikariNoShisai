@@ -23,6 +23,7 @@ namespace HikariNoShisai.WebAPI.Endpoints
                     new BotCommand { Command = TelegramCommands.Start, Description = "Start the bot" },
                     new BotCommand { Command = TelegramCommands.ShowAll, Description = "Show all terminals" },
                     new BotCommand { Command = TelegramCommands.Toggle, Description = "Toggle [terminal]" },
+                    new BotCommand { Command = TelegramCommands.Settings, Description = "Show settings" },
                 ]);
                 return $"Webhook set to {config.Value.Url + route}";
             });

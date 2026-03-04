@@ -10,6 +10,7 @@ namespace HikariNoShisai.DAL
         public DbSet<AgentTerminal> AgentTerminals => Set<AgentTerminal>();
         public DbSet<AgentStatusLog> AgentStatusLogs => Set<AgentStatusLog>();
         public DbSet<User> Users => Set<User>();
+        public DbSet<Settings> Settings => Set<Settings>();
 
         public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = new())
         {
