@@ -11,11 +11,13 @@ namespace HikariNoShisai.BLL.Services
         IAgentService agentService,
         IAgentTerminalService agentTerminal,
         IUserService userService,
-        IMemoryCache memoryCache) : ITelegramService
+        IMemoryCache memoryCache,
+        ISettingsService settingsService) : ITelegramService
     {
         private readonly IAgentService _agentService = agentService;
         private readonly IAgentTerminalService _agentTerminal = agentTerminal;
         private readonly IUserService _userService = userService;
+        private readonly ISettingsService _settingsService = settingsService;
         private readonly IMemoryCache _memoryCache = memoryCache;
         private const string CacheKeyPrefix = "telegram_";
         private readonly TimeSpan Expiration = TimeSpan.FromMinutes(5);
@@ -28,6 +30,10 @@ namespace HikariNoShisai.BLL.Services
 
             if (_memoryCache.TryGetValue<TelegramCache>(userId, out var cacheEntry) && cacheEntry is not null)
             {
+                var command = GetTemplateFromMessage(message, userLanguage);
+                if (command == MessageTemplate.ButtonCancel)
+                    return FormatResponse(userId, userLanguage, MessageTemplate.SuccessfulCommand, null, TelegramChatStep.None);
+
                 return await ParseDialog(cacheEntry.ChatStep, userId, message, userLanguage);
             }
 
@@ -38,6 +44,7 @@ namespace HikariNoShisai.BLL.Services
         {
             return chatStep switch
             {
+                TelegramChatStep.Settings => ParseSettingsCommand(userId, message, language),
                 _ => Task.FromResult(GetMessageFromTemplate(MessageTemplate.UnknownCommand, language))
             };
         }
@@ -49,7 +56,13 @@ namespace HikariNoShisai.BLL.Services
             return parts[0] switch
             {
                 TelegramCommands.ShowAll => ShowAllCommand(),
-                TelegramCommands.Settings => SettingsCommand(userId, language),
+                TelegramCommands.Settings => Task.FromResult(FormatResponse(
+                    userId,
+                    language,
+                    MessageTemplate.SettingsHeader,
+                    [MessageTemplate.ButtonNotifications, MessageTemplate.ButtonLanguage, MessageTemplate.ButtonOffset, MessageTemplate.ButtonCancel],
+                    TelegramChatStep.Settings   
+                )),
                 TelegramCommands.Toggle when parts.Length == 3 => CommandExecute(() => _agentTerminal.ToggleAgentTerminalStatus(Guid.Parse(parts[1]), Guid.Parse(parts[2])), language),
                 _ => Task.FromResult(GetMessageFromTemplate(MessageTemplate.UnknownCommand, language))
             };
@@ -71,13 +84,50 @@ namespace HikariNoShisai.BLL.Services
             return result;
         }
 
-        private Task<string> SettingsCommand(long userId, string language)
+        private Task<string> ParseSettingsCommand(long userId, string message, string language)
         {
-            SetCache(userId, TelegramChatStep.Settings);
-            MessageTemplate[] buttons = [MessageTemplate.ButtonNotifications, MessageTemplate.ButtonLanguage, MessageTemplate.ButtonOffset, MessageTemplate.ButtonCancel];
-            var settingsMessage = GetMessageFromTemplate(MessageTemplate.SettingsHeader, language);
+            var command = GetTemplateFromMessage(message, language);
+            return command switch
+            {
+                MessageTemplate.ButtonNotifications => ParseSettingsNotificationsCommand(userId, language),
+                MessageTemplate.ButtonLanguage => Task.FromResult(FormatResponse(
+                    userId,
+                    language,
+                    MessageTemplate.LanguageHeader,
+                    [MessageTemplate.ButtonEnglish, MessageTemplate.ButtonUkrainian, MessageTemplate.ButtonRussian, MessageTemplate.ButtonCancel],
+                    TelegramChatStep.SettingsLanguage
+                )),
+                MessageTemplate.ButtonOffset => ParseSettingsOffsetCommand(userId, language),
+                _ => Task.FromResult(GetMessageFromTemplate(MessageTemplate.UnknownCommand, language))
+            };
+        }
 
-            return Task.FromResult(ButtonFormatter.AddButtons(settingsMessage, GetMessageFromTemplate(buttons, language)));
+        private async Task<string> ParseSettingsNotificationsCommand(long userId, string language)
+        {
+            var userSettings = await _userService.GetSettings(userId);
+            var response = FormatResponse(
+                userId,
+                language,
+                MessageTemplate.NotificationsHeader,
+                [MessageTemplate.ButtonCancel],
+                TelegramChatStep.SettingsNotifications
+            );
+
+            return StringHelpers.ReplacePlaceholder(response, ((long)userSettings).ToString());
+        }
+
+        private async Task<string> ParseSettingsOffsetCommand(long userId, string language)
+        {
+            var offset = await _settingsService.GetTimezoneOffset();
+            var response = FormatResponse(
+                userId,
+                language,
+                MessageTemplate.OffsetHeader,
+                [MessageTemplate.ButtonCancel],
+                TelegramChatStep.SettingsOffset
+            );
+
+            return StringHelpers.ReplacePlaceholder(response, offset.ToString());
         }
 
         private async Task<string> CommandExecute(Func<Task> action, string language)
@@ -87,6 +137,26 @@ namespace HikariNoShisai.BLL.Services
             return GetMessageFromTemplate(MessageTemplate.SuccessfulCommand, language);
         }
 
+        private string FormatResponse(long userId, string language, MessageTemplate template, MessageTemplate[]? buttons = null, TelegramChatStep? chatStep = null)
+        {
+            if (chatStep.HasValue)
+            {
+                if (chatStep.Value == TelegramChatStep.None)
+                {
+                    ClearCache(userId);
+                }
+                else
+                {
+                    SetCache(userId, chatStep.Value);
+                }
+            }
+            buttons ??= [];
+
+            return ButtonFormatter.AddButtons(
+                GetMessageFromTemplate(template, language),
+                GetMessageFromTemplate(buttons, language));
+        }
         private void SetCache(long userId, TelegramChatStep chatStep) => _memoryCache.Set($"{CacheKeyPrefix}{userId}", new TelegramCache { ChatStep = chatStep }, Expiration);
+        private void ClearCache(long userId) => _memoryCache.Remove($"{CacheKeyPrefix}{userId}");
     }
 }

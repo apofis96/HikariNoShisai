@@ -2,9 +2,10 @@
 {
     public enum TelegramChatStep
     {
+        None,
         Settings,
-        Settings_Notifications,
-        Settings_Language,
-        Settings_Offset,
+        SettingsNotifications,
+        SettingsLanguage,
+        SettingsOffset,
     }
 }

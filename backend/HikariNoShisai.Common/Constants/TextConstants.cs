@@ -12,11 +12,17 @@
             UnknownCommand,
             SuccessfulCommand,
             SettingsHeader,
+            NotificationsHeader,
+            LanguageHeader,
+            OffsetHeader,
 
             ButtonCancel,
             ButtonNotifications,
             ButtonLanguage,
             ButtonOffset,
+            ButtonEnglish,
+            ButtonUkrainian,
+            ButtonRussian,
         }
 
         private static readonly Dictionary<MessageTemplate, string> _enTemplates = new()
@@ -29,11 +35,17 @@
             { MessageTemplate.UnknownCommand, "Unknown command or invalid parameters." },
             { MessageTemplate.SuccessfulCommand, "Command executed successfully." },
             { MessageTemplate.SettingsHeader, "Choose Settings"},
+            { MessageTemplate.NotificationsHeader, "Current Notifications setup is {1}\n Type new value or Cancel" },
+            { MessageTemplate.LanguageHeader, "Select Language" },
+            { MessageTemplate.OffsetHeader, "Current timezone offset is {1}\n Type new value or Cancel"  },
 
             { MessageTemplate.ButtonCancel, "Cancel"  },
             { MessageTemplate.ButtonNotifications, "Notifications" },
             { MessageTemplate.ButtonLanguage, "Language" },
             { MessageTemplate.ButtonOffset, "Offset" },
+            { MessageTemplate.ButtonEnglish, "English" },
+            { MessageTemplate.ButtonUkrainian, "Українська" },
+            { MessageTemplate.ButtonRussian, "Русский" },
         };
 
         private static readonly Dictionary<MessageTemplate, string> _ukTemplates = new()
@@ -46,6 +58,9 @@
             { MessageTemplate.UnknownCommand, "Невідома команда або невірні параметры." },
             { MessageTemplate.SuccessfulCommand, "Команда успішно виконана." },
             { MessageTemplate.SettingsHeader, "Виберіть налаштування" },
+            { MessageTemplate.NotificationsHeader, "Поточна настройка сповіщень {1}\n Введіть нове значение або Скасувати" },
+            { MessageTemplate.LanguageHeader, "Виберіть мову" },
+            { MessageTemplate.OffsetHeader, "Поточне зміщення часового поясу {1}\n Введіть нове значение або Скасувати"  },
 
             { MessageTemplate.ButtonCancel, "Скасувати"  },
             { MessageTemplate.ButtonNotifications, "Сповіщення" },
@@ -63,6 +78,9 @@
             { MessageTemplate.UnknownCommand, "Неизвестная команда или неверные параметры." },
             { MessageTemplate.SuccessfulCommand, "Команда успешно выполнена." },
             { MessageTemplate.SettingsHeader, "Выберите настройки" },
+            { MessageTemplate.NotificationsHeader, "Текущая настройка уведомлений {1}\n Введите новое значение или Отмена" },
+            { MessageTemplate.LanguageHeader, "Выберите язык" },
+            { MessageTemplate.OffsetHeader, "Текущее смещение часового пояса {1}\n Введите новое значение или Отмена"  },
 
             { MessageTemplate.ButtonCancel, "Отмена"   },
             { MessageTemplate.ButtonNotifications, "Уведомления" },

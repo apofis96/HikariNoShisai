@@ -8,7 +8,7 @@
             {
                 input += "\n<keyboard reply_remove>";
             }
-            else            {
+            else {
                 input += "\n<keyboard>\n";
                 foreach (var button in buttons)
                 {
