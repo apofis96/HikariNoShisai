@@ -13,7 +13,7 @@ namespace HikariNoShisai.BLL.Services
         private readonly Guid _id = Guid.Parse("00000000-0000-0000-0000-000000000001");
         private const string Key = "Settings";
 
-        public async Task<int> GetTimezoneOffset()
+        public async Task<TimeSpan> GetTimezoneOffset()
         {
             _memoryCache.TryGetValue<Settings>(Key, out var offset);
 
@@ -35,7 +35,7 @@ namespace HikariNoShisai.BLL.Services
                 _memoryCache.Set(Key, offset);
             }
 
-            return offset.TimezoneOffset;
+            return TimeSpan.FromMinutes(offset.TimezoneOffset);
         }
 
         public async Task SetTimezoneOffset(int offset)

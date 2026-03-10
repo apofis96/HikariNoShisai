@@ -9,10 +9,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HikariNoShisai.BLL.Services
 {
-    public class AgentStatusLogService(HikariNoShisaiContext context, IMessageQueue messageQueue) : IAgentStatusLogService
+    public class AgentStatusLogService(HikariNoShisaiContext context, IMessageQueue messageQueue, ISettingsService settingsService) : IAgentStatusLogService
     {
         private readonly HikariNoShisaiContext _context = context;
         private readonly IMessageQueue _messageQueue = messageQueue;
+        private readonly ISettingsService _settingsService;
 
         public async Task Create(AgentStatusLogRequest statusLog)
         {
@@ -39,10 +40,11 @@ namespace HikariNoShisai.BLL.Services
                 var agent = await _context.Agents.FirstOrDefaultAsync(x => x.Id == statusLog.AgentId);
                 if (agent is not null)
                 {
+                    var offset = await _settingsService.GetTimezoneOffset();
                     var gridStatusNotification = new TelegramNotification
                     {
                         Template = statusLog.IsGridAvailable ? TextConstants.MessageTemplate.GridOnline : TextConstants.MessageTemplate.GridOffline,
-                        Values = [dateNow.ToString(), StringHelpers.FormatDuration(dateNow - lastAgentStatus.CreatedAt)],
+                        Values = [dateNow.ToOffset(offset).ToString(), StringHelpers.FormatDuration(dateNow - lastAgentStatus.CreatedAt)],
                         IsVerbose = false
                     };
                     _messageQueue.Send(MessageTopics.TelegramNotification, gridStatusNotification);

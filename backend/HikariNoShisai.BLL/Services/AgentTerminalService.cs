@@ -2,20 +2,30 @@
 using HikariNoShisai.Common.Interfaces;
 using HikariNoShisai.DAL;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace HikariNoShisai.BLL.Services
 {
-    public class AgentTerminalService(HikariNoShisaiContext context): IAgentTerminalService
+    public class AgentTerminalService(HikariNoShisaiContext context, IMemoryCache memoryCache) : IAgentTerminalService
     {
         private readonly HikariNoShisaiContext _context = context;
+        private readonly IMemoryCache _memoryCache = memoryCache;
+        private const string CacheKeyPrefix = "terminal_";
 
         public async Task<sbyte> GetAgentTerminalStatus(Guid agentId, Guid terminalId)
         {
+            if (_memoryCache.TryGetValue<sbyte>(CacheKeyPrefix + agentId + terminalId, out var cachedStatus)) 
+            {
+                return cachedStatus;
+            }
             var terminal = await GetAgentTerminal(_context, agentId, terminalId);
             if (terminal is null)
                 return -1;
 
-            return (sbyte)(terminal.IsActive ? 1 : 0);
+            var status = (sbyte)(terminal.IsActive ? 1 : 0);
+            _memoryCache.Set(CacheKeyPrefix + agentId + terminalId, status);
+
+            return status;
         }
 
         public async Task SetAgentTerminalStatus(Guid agentId, Guid terminalId, bool isActive)
@@ -26,6 +36,7 @@ namespace HikariNoShisai.BLL.Services
 
             terminal.IsActive = isActive;
             await _context.SaveChangesAsync();
+            _memoryCache.Remove(CacheKeyPrefix + agentId + terminalId);
         }
 
         public async Task ToggleAgentTerminalStatus(Guid agentId, Guid terminalId)
@@ -36,6 +47,7 @@ namespace HikariNoShisai.BLL.Services
 
             terminal.IsActive = !terminal.IsActive;
             await _context.SaveChangesAsync();
+            _memoryCache.Remove(CacheKeyPrefix + agentId + terminalId);
         }
 
         private static readonly Func<HikariNoShisaiContext, Guid, Guid, Task<AgentTerminal?>> GetAgentTerminal =

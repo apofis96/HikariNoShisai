@@ -2,7 +2,7 @@
 {
     public interface ISettingsService
     {
-        Task<int> GetTimezoneOffset();
+        Task<TimeSpan> GetTimezoneOffset();
         Task SetTimezoneOffset(int offset);
     }
 }

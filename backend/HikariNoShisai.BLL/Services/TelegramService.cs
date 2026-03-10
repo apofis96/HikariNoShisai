@@ -45,6 +45,9 @@ namespace HikariNoShisai.BLL.Services
             return chatStep switch
             {
                 TelegramChatStep.Settings => ParseSettingsCommand(userId, message, language),
+                TelegramChatStep.SettingsNotifications => SetSettingsNotificationsCommand(userId, message, language),
+                TelegramChatStep.SettingsOffset => SetSettingsOffsetCommand(userId, message, language),
+                TelegramChatStep.SettingsLanguage => SetLanguageCommand(userId, message, language),
                 _ => Task.FromResult(GetMessageFromTemplate(MessageTemplate.UnknownCommand, language))
             };
         }
@@ -84,6 +87,7 @@ namespace HikariNoShisai.BLL.Services
             return result;
         }
 
+        #region Settings Dialog
         private Task<string> ParseSettingsCommand(long userId, string message, string language)
         {
             var command = GetTemplateFromMessage(message, language);
@@ -116,6 +120,17 @@ namespace HikariNoShisai.BLL.Services
             return StringHelpers.ReplacePlaceholder(response, ((long)userSettings).ToString());
         }
 
+        private async Task<string> SetSettingsNotificationsCommand(long userId, string message, string language)
+        {
+            if (Enum.TryParse<UserSettings>(message, true, out var newSetting))
+            {
+                await _userService.SetSettings(userId, newSetting);
+                return FormatResponse(userId, language, MessageTemplate.SuccessfulCommand, null, TelegramChatStep.None);
+            }
+
+            return FormatResponse(userId, language, MessageTemplate.InvalidFormat);
+        }
+
         private async Task<string> ParseSettingsOffsetCommand(long userId, string language)
         {
             var offset = await _settingsService.GetTimezoneOffset();
@@ -127,8 +142,37 @@ namespace HikariNoShisai.BLL.Services
                 TelegramChatStep.SettingsOffset
             );
 
-            return StringHelpers.ReplacePlaceholder(response, offset.ToString());
+            return StringHelpers.ReplacePlaceholder(response, offset.TotalMinutes.ToString());
         }
+
+        private async Task<string> SetSettingsOffsetCommand(long userId, string message, string language)
+        {
+            if (int.TryParse(message, out var newOffset) && newOffset >= (-12 * 60) && newOffset <= (14 * 60))
+            {
+                await _settingsService.SetTimezoneOffset(newOffset);
+                return FormatResponse(userId, language, MessageTemplate.SuccessfulCommand, null, TelegramChatStep.None);
+            }
+            return FormatResponse(userId, language, MessageTemplate.InvalidFormat);
+        }
+
+        private async Task<string> SetLanguageCommand(long userId, string message, string language)
+        {
+            var command = GetTemplateFromMessage(message, language);
+            var newLanguage = command switch
+            {
+                MessageTemplate.ButtonEnglish => LanguageCodes.English,
+                MessageTemplate.ButtonUkrainian => LanguageCodes.Ukrainian,
+                MessageTemplate.ButtonRussian => LanguageCodes.Russian,
+                _ => LanguageCodes.English
+            };
+            if (newLanguage is not null)
+            {
+                await _userService.SetLanguage(userId, newLanguage);
+                return FormatResponse(userId, newLanguage, MessageTemplate.SuccessfulCommand, null, TelegramChatStep.None);
+            }
+            return FormatResponse(userId, language, MessageTemplate.InvalidFormat);
+        }
+        #endregion
 
         private async Task<string> CommandExecute(Func<Task> action, string language)
         {
