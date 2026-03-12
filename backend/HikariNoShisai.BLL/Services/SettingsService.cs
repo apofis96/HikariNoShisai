@@ -15,27 +15,32 @@ namespace HikariNoShisai.BLL.Services
 
         public async Task<TimeSpan> GetTimezoneOffset()
         {
-            _memoryCache.TryGetValue<Settings>(Key, out var offset);
+            return TimeSpan.FromMinutes(await GetTimezoneMinutes());
+        }
 
-            if (offset is null)
+        public async Task<int> GetTimezoneMinutes()
+        {
+            _memoryCache.TryGetValue<Settings>(Key, out var settings);
+
+            if (settings is null)
             {
-                offset = await _context.Settings.FirstOrDefaultAsync(x => x.Id == _id);
+                settings = await _context.Settings.FirstOrDefaultAsync(x => x.Id == _id);
 
-                if (offset is null)
+                if (settings is null)
                 {
-                    offset = new Settings
+                    settings = new Settings
                     {
                         Id = _id,
                         TimezoneOffset = 0
                     };
-                    _context.Settings.Add(offset);
+                    _context.Settings.Add(settings);
                     await _context.SaveChangesAsync();
                 }
 
-                _memoryCache.Set(Key, offset);
+                _memoryCache.Set(Key, settings);
             }
 
-            return TimeSpan.FromMinutes(offset.TimezoneOffset);
+            return settings.TimezoneOffset;
         }
 
         public async Task SetTimezoneOffset(int offset)

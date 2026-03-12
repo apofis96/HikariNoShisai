@@ -13,7 +13,7 @@ namespace HikariNoShisai.BLL.Services
     {
         private readonly HikariNoShisaiContext _context = context;
         private readonly IMessageQueue _messageQueue = messageQueue;
-        private readonly ISettingsService _settingsService;
+        private readonly ISettingsService _settingsService = settingsService;
 
         public async Task Create(AgentStatusLogRequest statusLog)
         {

@@ -6,5 +6,6 @@ namespace HikariNoShisai.Common.Interfaces
     {
         Task<IEnumerable<Agent>> GetAll();
         Task<string?> GetNameById(Guid agentId);
+        Task<sbyte> GetWeather(Guid agentId);
     }
 }

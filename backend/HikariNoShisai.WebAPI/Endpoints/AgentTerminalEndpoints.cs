@@ -1,6 +1,6 @@
 ﻿using HikariNoShisai.Common.DTO;
 using HikariNoShisai.Common.Interfaces;
-using Microsoft.EntityFrameworkCore;
+
 namespace HikariNoShisai.WebAPI.Endpoints
 {
     public static class AgentTerminalEndpoints

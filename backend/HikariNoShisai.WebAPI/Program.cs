@@ -48,6 +48,12 @@ builder.Services.AddTransient<IMessageQueue, MessageQueue>();
 builder.Services.AddTransient<IAgentWatchdog, AgentWatchdog>();
 builder.Services.AddTransient<IUserService, UserService>();
 builder.Services.AddTransient<ISettingsService, SettingsService>();
+builder.Services.AddTransient<IWeatherForecast, WeatherForecast>();
+builder.Services.AddHttpClient<IWeatherForecast, WeatherForecast>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["OpenWeather:BaseUrl"]!);
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+});
 builder.Services.AddHostedService<AgentWatchdogBackgroundService>();
 builder.Services.AddHostedService<NotificationsBackgroundService>();
 
