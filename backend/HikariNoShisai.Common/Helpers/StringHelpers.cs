@@ -17,6 +17,11 @@
         {
             return (int)duration.TotalHours + ":" + duration.ToString("mm");
         }
+
+        public static string FormatAgentResponse(int input)
+        {
+            return $"<{input}>";
+        }
     }
 }
 

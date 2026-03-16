@@ -1,4 +1,5 @@
 ﻿using HikariNoShisai.Common.DTO;
+using HikariNoShisai.Common.Helpers;
 using HikariNoShisai.Common.Interfaces;
 
 namespace HikariNoShisai.WebAPI.Endpoints
@@ -8,12 +9,12 @@ namespace HikariNoShisai.WebAPI.Endpoints
         public static void MapAgentTerminalEndpoints(this WebApplication app)
         {
             var agentTerminalsApi = app.MapGroup("/terminal").RequireAuthorization();
-            agentTerminalsApi.MapGet("/", async ([AsParameters] AgentTerminalRequest test, IAgentTerminalService agentTerminalService, IAgentWatchdog agentWatchdog) =>
+            agentTerminalsApi.MapGet("/", async ([AsParameters] AgentTerminalRequest request, IAgentTerminalService agentTerminalService, IAgentWatchdog agentWatchdog) =>
             {
-                agentWatchdog.Update(test.AgentId);
-                var status = await agentTerminalService.GetAgentTerminalStatus(test.AgentId, test.TerminalId);
+                agentWatchdog.Update(request.AgentId);
+                var status = await agentTerminalService.GetAgentTerminalStatus(request.AgentId, request.TerminalId);
 
-                return Results.Ok("<"+status+">");
+                return Results.Ok(StringHelpers.FormatAgentResponse(status));
             }).WithName("GetAgentTerminal");
             agentTerminalsApi.MapPatch("/", async ([AsParameters] AgentTerminalStatusPatch request, IAgentTerminalService agentTerminalService) =>
             {
