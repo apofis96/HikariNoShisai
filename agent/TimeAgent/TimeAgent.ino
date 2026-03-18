@@ -1,0 +1,232 @@
+#include <ESP8266WiFi.h>
+#include <ezTime.h>
+#include <Arduino.h>
+#include <ESP8266WiFiMulti.h>
+#include <ESP8266HTTPClient.h>
+#include <WiFiClientSecureBearSSL.h>
+
+#include "secret.h"
+
+const bool isDebug = true;
+int seg_delay = 500;
+
+#define SER 16
+#define S_CLK 5
+#define R_CLK 4
+
+char m1;
+char m2;
+char m3;
+char m4;
+
+void write_vector(bool arr[], bool isSeg, bool isDot = false, int delay = 0);
+
+bool emty[] = { false, false, false, false, false, false, false, false };
+
+bool seg0[] = { false, false, false, false, false, false, false, true };
+bool seg1[] = { false, false, false, false, false, false, true, false };
+bool seg2[] = { false, false, false, false, false, true, false, false };
+bool seg3[] = { false, false, false, false, true, false, false, false };
+bool seg4[] = { false, false, false, true, false, false, false, false };
+bool seg5[] = { false, false, true, false, false, false, false, false };
+bool seg6[] = { false, true, false, false, false, false, false, false };
+bool seg7[] = { true, false, false, false, false, false, false, false };
+bool segAll[] = { true, true, true, true, true, true, true, true };
+
+bool dig1[] = { false, false, false, true, false, false, true };
+bool dig2[] = { true, false, true, true, true, true, false };
+bool dig3[] = { true, false, true, true, false, true, true };
+bool dig4[] = { true, true, false, true, false, false, true };
+bool dig5[] = { true, true, true, false, false, true, true };
+bool dig6[] = { true, true, true, false, true, true, true };
+bool dig7[] = { false, false, true, true, false, false, true };
+bool dig8[] = { true, true, true, true, true, true, true };
+bool dig9[] = { true, true, true, true, false, true, true };
+bool dig0[] = { false, true, true, true, true, true, true };
+bool digMinus[] = { true, false, false, false, false, false, false };
+bool digCelsium[] = { true, false, false, false, true, true, false };
+
+bool* digits[] = { dig0, dig1, dig2, dig3, dig4, dig5, dig6, dig7, dig8, dig9 };
+
+ESP8266WiFiMulti WiFiMulti;
+Timezone tz;
+
+void debugPrint(const char* msg) {
+  if (isDebug) {
+    Serial.print(msg);
+  }
+}
+
+void setup() {
+  if (isDebug) {
+    Serial.begin(115200);
+    Serial.println("debug started");
+  }
+
+  pinMode(SER, OUTPUT);
+  pinMode(S_CLK, OUTPUT);
+  pinMode(R_CLK, OUTPUT);
+  digitalWrite(SER, 0);
+  digitalWrite(S_CLK, 0);
+  digitalWrite(R_CLK, 0);
+
+  delay(20);
+
+  write_vector(segAll, false);
+  write_vector(dig8, true, true, 500);
+  delay(500);
+
+  WiFi.mode(WIFI_STA);
+  WiFiMulti.addAP(_ssid, _password);
+
+  int i = 0;
+  bool incr = true;
+  while ((WiFiMulti.run() != WL_CONNECTED)) {
+    debugPrint(".");
+    write_vector(segAll, false);
+    write_vector(digits[i], true, i % 2 == 0, 500);
+    if (i == 9) {
+      incr = false;
+    } else if (i == 0) {
+      incr = true;
+    }
+    if (incr) {
+      i++;
+    } else {
+      i--;
+    }
+    delay(250);
+  }
+
+  debugPrint("\nntp start\n");
+
+  setServer(_ntpServer);
+  waitForSync();
+  tz.setLocation(_timeZone);
+
+  debugPrint(tz.dateTime().c_str());
+
+  debugPrint("\nSetup done\n");
+
+  delay(500);
+}
+
+void write_vector(bool arr[], bool isSeg, bool isDot, int delay) {
+  int max = 7;
+  if (!isSeg) {
+    max = 8;
+  }
+  for (int i = 0; i < max; ++i) {
+    if (arr[i] == isSeg) {
+      digitalWrite(SER, 1);
+    } else {
+      digitalWrite(SER, 0);
+    }
+    digitalWrite(S_CLK, 1);
+    digitalWrite(S_CLK, 0);
+  }
+
+  if (isSeg) {
+    if (isDot) {
+      digitalWrite(SER, 1);
+    } else {
+      digitalWrite(SER, 0);
+    }
+    digitalWrite(S_CLK, 1);
+    digitalWrite(S_CLK, 0);
+  }
+
+  if (isSeg) {
+    digitalWrite(R_CLK, 1);
+    digitalWrite(R_CLK, 0);
+  }
+  if (delay != 0) {
+    os_delay_us(delay);
+  }
+}
+
+bool* get_vector(char input) {
+  switch (input) {
+    case '.':
+      return emty;
+    case 'c':
+      return digCelsium;
+    case '-':
+      return digMinus;
+    case '0':
+      return dig0;
+    case '1':
+      return dig1;
+    case '2':
+      return dig2;
+    case '3':
+      return dig3;
+    case '4':
+      return dig4;
+    case '5':
+      return dig5;
+    case '6':
+      return dig6;
+    case '7':
+      return dig7;
+    case '8':
+      return dig8;
+    case '9':
+      return dig9;
+    default:
+      return emty;
+  }
+}
+
+int _hour;
+int minut;
+bool isDot;
+int oldMinut = 0;
+
+void loop() {
+  events();
+  _hour = hour();
+  minut = minute();
+  isDot = second() % 2 == 1;
+
+  if (minut != oldMinut && minut % 10 == 0) {
+    oldMinut = minut;
+    //call weather
+    m1 = '-';
+    m2 = '-';
+    m3 = '-';
+    m4 = '-';
+  }
+
+  if (_hour < 10) {
+    write_vector(seg0, false);
+    write_vector(dig0, true, false, 1000);
+  } else {
+    write_vector(seg0, false);
+    write_vector(digits[_hour / 10 % 10], true, false, 1000);
+  }
+  write_vector(seg1, false);
+  write_vector(digits[_hour % 10], true, isDot, 1000);
+
+  if (minut < 10) {
+    write_vector(seg2, false);
+    write_vector(dig0, true, isDot, 1000);
+  } else {
+    write_vector(seg2, false);
+    write_vector(digits[minut / 10 % 10], true, isDot, 1000);
+  }
+  write_vector(seg3, false);
+  write_vector(digits[minut % 10], true, false, 1000);
+
+  write_vector(seg4, false);
+  write_vector(get_vector(m1), true, false, 200);
+  write_vector(seg5, false);
+  write_vector(get_vector(m2), true, false, 200);
+  write_vector(seg6, false);
+  write_vector(get_vector(m3), true, false, 200);
+  write_vector(seg7, false);
+  write_vector(get_vector(m4), true, false, 200);
+
+  write_vector(emty, false);
+  write_vector(emty, true);
+}

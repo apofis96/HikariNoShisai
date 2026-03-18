@@ -402,4 +402,4 @@ FodyWeavers.xsd
 .pio
 
 /backend/HikariNoShisai.WebAPI/appsettings.Development.json
-agent/secret.h
+agent/*/secret.h
