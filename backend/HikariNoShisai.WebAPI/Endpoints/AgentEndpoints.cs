@@ -1,4 +1,5 @@
-﻿using HikariNoShisai.Common.Interfaces;
+﻿using HikariNoShisai.Common.Helpers;
+using HikariNoShisai.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace HikariNoShisai.WebAPI.Endpoints
@@ -12,8 +13,14 @@ namespace HikariNoShisai.WebAPI.Endpoints
                 var all = await agentService.GetAll();
                 return Results.Ok("List of agents " + all.Count());
             }).WithName("GetAgents");
+
             agentsApi.MapGet("/{id}", (int id) => $"Agent with ID: {id}")
-                     .WithName("GetAgentById");
+                .WithName("GetAgentById");
+
+            agentsApi.MapGet("/{id}/weather", async (Guid id, IAgentService agentService) => {
+                var weather = await agentService.GetWeather(id);
+                return Results.Ok(StringHelpers.FormatAgentResponse(weather));
+            }).WithName("GetAgentWeather");
         }
     }
 }

@@ -47,7 +47,7 @@ namespace HikariNoShisai.BLL.Services
 
             var weather = await _weatherForecast.Get(agent!.Latitude, agent.Longitude);
 
-            return (sbyte)weather.Main.Temp;
+            return (sbyte)Math.Round(weather.Main.Temp);
         }
     }
 }

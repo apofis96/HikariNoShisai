@@ -13,7 +13,7 @@ namespace HikariNoShisai.WebAPI.Endpoints
                 var offset = await settingsService.GetTimezoneMinutes();
 
                 return Results.Ok(StringHelpers.FormatAgentResponse(offset));
-            }).WithName("GetAgentTerminal");
+            }).WithName("TimezoneOffset");
         }
     }
 }

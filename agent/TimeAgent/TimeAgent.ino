@@ -18,6 +18,7 @@ char m1;
 char m2;
 char m3;
 char m4;
+int weather;
 
 void write_vector(bool arr[], bool isSeg, bool isDot = false, int delay = 0);
 
@@ -50,6 +51,8 @@ bool* digits[] = { dig0, dig1, dig2, dig3, dig4, dig5, dig6, dig7, dig8, dig9 };
 
 ESP8266WiFiMulti WiFiMulti;
 Timezone tz;
+
+char weatherUrl[256];
 
 void debugPrint(const char* msg) {
   if (isDebug) {
@@ -106,9 +109,84 @@ void setup() {
 
   debugPrint(tz.dateTime().c_str());
 
+  snprintf(
+    weatherUrl,
+    sizeof(weatherUrl),
+    "%s/agents/%s/weather",
+    _host,
+    _id);
+
+  debugPrint(weatherUrl);
+
   debugPrint("\nSetup done\n");
 
   delay(500);
+}
+
+int getWeather(const char* url) {
+  int value = -1;
+  bool insideBrackets = false;
+  bool isNegative = false;
+
+  std::unique_ptr<BearSSL::WiFiClientSecure> client(new BearSSL::WiFiClientSecure);
+  client->setInsecure();
+  HTTPClient https;
+
+  if (https.begin(*client, url)) {
+    https.addHeader("x-api-key", _apiKey);
+    int httpCode = https.GET();
+
+    if (httpCode == HTTP_CODE_OK) {
+      debugPrint("stream read start\n");
+      WiFiClient& stream = https.getStream();
+
+      while (stream.connected()) {
+        if (!stream.available()) continue;
+        char c = stream.read();
+
+        if (c == '<') {
+          insideBrackets = true;
+        } else if (c == '>' && insideBrackets) {
+          insideBrackets = false;
+          if (isNegative) {
+            value = -value;
+          }
+          break;
+        } else if (insideBrackets) {
+          if (c == '-') {
+            isNegative = true;
+          } else if (c >= '0' && c <= '9') {
+            value = value * 10 + (c - '0');
+          } else {
+            value = -99;
+            break;
+          }
+        }
+      }
+    }
+    https.end();
+  }
+  debugPrint("weather done\n");
+
+  return value;
+}
+
+void transformWeather(int temp) {
+  bool neg = temp < 0;
+  if (neg) temp = -temp;
+  bool big = temp > 9;
+
+  if (big) {
+      m1 = neg ? '-' : '.';
+      m2 = (temp / 10) + '0';
+      m3 = (temp % 10) + '0';
+      m4 = 'c';
+  } else {
+      m1 = '.';
+      m2 = neg ? '-' : temp + '0';
+      m3 = neg ? temp + '0' : 'c';
+      m4 = neg ? 'c' : '.';
+  }
 }
 
 void write_vector(bool arr[], bool isSeg, bool isDot, int delay) {
@@ -191,11 +269,8 @@ void loop() {
 
   if (minut != oldMinut && minut % 10 == 0) {
     oldMinut = minut;
-    //call weather
-    m1 = '-';
-    m2 = '-';
-    m3 = '-';
-    m4 = '-';
+    weather = getWeather(weatherUrl);
+    transformWeather(weather);
   }
 
   if (_hour < 10) {
