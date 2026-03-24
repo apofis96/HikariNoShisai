@@ -28,7 +28,7 @@ namespace HikariNoShisai.BLL.Services
             if (message.StartsWith('/'))
                 return await ParseCommand(userId, message, userLanguage);
 
-            if (_memoryCache.TryGetValue<TelegramCache>(userId, out var cacheEntry) && cacheEntry is not null)
+            if (_memoryCache.TryGetValue<TelegramCache>(GetCacheKey(userId), out var cacheEntry) && cacheEntry is not null)
             {
                 var command = GetTemplateFromMessage(message, userLanguage);
                 if (command == MessageTemplate.ButtonCancel)
@@ -200,7 +200,8 @@ namespace HikariNoShisai.BLL.Services
                 GetMessageFromTemplate(template, language),
                 GetMessageFromTemplate(buttons, language));
         }
-        private void SetCache(long userId, TelegramChatStep chatStep) => _memoryCache.Set($"{CacheKeyPrefix}{userId}", new TelegramCache { ChatStep = chatStep }, Expiration);
+        private string GetCacheKey(long userId) => $"{CacheKeyPrefix}{userId}";
+        private void SetCache(long userId, TelegramChatStep chatStep) => _memoryCache.Set(GetCacheKey(userId), new TelegramCache { ChatStep = chatStep }, Expiration);
         private void ClearCache(long userId) => _memoryCache.Remove($"{CacheKeyPrefix}{userId}");
     }
 }

@@ -9,10 +9,10 @@
                 input += "\n<keyboard reply_remove>";
             }
             else {
-                input += "\n<keyboard>\n";
+                input += "\n<keyboard reply>\n";
                 foreach (var button in buttons)
                 {
-                    input += $"<button text=\"{button}\" \n>";
+                    input += $"<button text=\"{button}\">\n";
                 }
             }
 

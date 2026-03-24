@@ -3,5 +3,6 @@
     public class AppConfig
     {
         public required string ApiKey { get; set; }
+        public required string DefaultCulture { get; set; }
     }
 }

@@ -37,6 +37,11 @@ builder.Services.Configure<AppConfig>(
 builder.Services.AddDbContext<HikariNoShisaiContext>(options =>
     options.UseSqlite("Data Source=app.db"));
 
+builder.Services.Configure<RequestLocalizationOptions>(options =>
+{
+    options.SetDefaultCulture(builder.Configuration["App:DefaultCulture"]!);
+});
+
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient("tgwebhook").RemoveAllLoggers()
     .AddTypedClient(httpClient => new TelegramBotClient(builder.Configuration["Telegram:Token"]!, httpClient));
@@ -70,5 +75,6 @@ app.MapTelegramEndpoints();
 app.MapAgentTerminalEndpoints();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRequestLocalization();
 
 app.Run();
