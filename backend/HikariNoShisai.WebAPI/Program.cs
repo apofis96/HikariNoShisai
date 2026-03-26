@@ -33,6 +33,8 @@ builder.Services.Configure<TelegramConfig>(
     builder.Configuration.GetSection("Telegram"));
 builder.Services.Configure<AppConfig>(
     builder.Configuration.GetSection("App"));
+builder.Services.Configure<OpenWeatherConfig>(
+    builder.Configuration.GetSection("OpenWeather"));
 
 builder.Services.AddDbContext<HikariNoShisaiContext>(options =>
     options.UseSqlite("Data Source=app.db"));
