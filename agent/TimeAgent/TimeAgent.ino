@@ -7,8 +7,9 @@
 
 #include "secret.h"
 
-const bool isDebug = true;
-int seg_delay = 500;
+const bool isDebug = false;
+int segDelayMajor = 1250;
+int segDelayMinor = 300;
 
 #define SER 16
 #define S_CLK 5
@@ -107,8 +108,6 @@ void setup() {
   waitForSync();
   tz.setLocation(_timeZone);
 
-  debugPrint(tz.dateTime().c_str());
-
   snprintf(
     weatherUrl,
     sizeof(weatherUrl),
@@ -116,15 +115,23 @@ void setup() {
     _host,
     _id);
 
-  debugPrint(weatherUrl);
-
   debugPrint("\nSetup done\n");
 
   delay(500);
+
+  weather = getWeather(weatherUrl);
+  transformWeather(weather);
+  debugPrint(weatherUrl);
+
+  debugPrint("\nInitial weather done\n");
+
+  debugPrint(tz.dateTime().c_str());
+  debugPrint("\nTimezone: ");
+  debugPrint(tz.getTimezoneName().c_str());
 }
 
 int getWeather(const char* url) {
-  int value = -1;
+  int value = 0;
   bool insideBrackets = false;
   bool isNegative = false;
 
@@ -137,7 +144,6 @@ int getWeather(const char* url) {
     int httpCode = https.GET();
 
     if (httpCode == HTTP_CODE_OK) {
-      debugPrint("stream read start\n");
       WiFiClient& stream = https.getStream();
 
       while (stream.connected()) {
@@ -166,7 +172,7 @@ int getWeather(const char* url) {
     }
     https.end();
   }
-  debugPrint("weather done\n");
+  debugPrint("\nweather done\n");
 
   return value;
 }
@@ -263,9 +269,9 @@ int oldMinut = 0;
 
 void loop() {
   events();
-  _hour = hour();
-  minut = minute();
-  isDot = second() % 2 == 1;
+  _hour = tz.hour();
+  minut = tz.minute();
+  isDot = tz.second() % 2 == 1;
 
   if (minut != oldMinut && minut % 10 == 0) {
     oldMinut = minut;
@@ -275,32 +281,32 @@ void loop() {
 
   if (_hour < 10) {
     write_vector(seg0, false);
-    write_vector(dig0, true, false, 1000);
+    write_vector(dig0, true, false, segDelayMajor);
   } else {
     write_vector(seg0, false);
-    write_vector(digits[_hour / 10 % 10], true, false, 1000);
+    write_vector(digits[_hour / 10 % 10], true, false, segDelayMajor);
   }
   write_vector(seg1, false);
-  write_vector(digits[_hour % 10], true, isDot, 1000);
+  write_vector(digits[_hour % 10], true, isDot, segDelayMajor);
 
   if (minut < 10) {
     write_vector(seg2, false);
-    write_vector(dig0, true, isDot, 1000);
+    write_vector(dig0, true, isDot, segDelayMajor);
   } else {
     write_vector(seg2, false);
-    write_vector(digits[minut / 10 % 10], true, isDot, 1000);
+    write_vector(digits[minut / 10 % 10], true, isDot, segDelayMajor);
   }
   write_vector(seg3, false);
-  write_vector(digits[minut % 10], true, false, 1000);
+  write_vector(digits[minut % 10], true, false, segDelayMajor);
 
   write_vector(seg4, false);
-  write_vector(get_vector(m1), true, false, 200);
+  write_vector(get_vector(m1), true, false, segDelayMinor);
   write_vector(seg5, false);
-  write_vector(get_vector(m2), true, false, 200);
+  write_vector(get_vector(m2), true, false, segDelayMinor);
   write_vector(seg6, false);
-  write_vector(get_vector(m3), true, false, 200);
+  write_vector(get_vector(m3), true, false, segDelayMinor);
   write_vector(seg7, false);
-  write_vector(get_vector(m4), true, false, 200);
+  write_vector(get_vector(m4), true, false, segDelayMinor);
 
   write_vector(emty, false);
   write_vector(emty, true);
