@@ -7,5 +7,8 @@
         SettingsNotifications,
         SettingsLanguage,
         SettingsOffset,
+        SettingsShortcut,
+        SettingsShortcutAdd,
+        SettingsShortcutRemove,
     }
 }

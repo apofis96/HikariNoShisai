@@ -1,9 +1,11 @@
 ﻿using HikariNoShisai.Common.Constants;
 using HikariNoShisai.Common.Entities;
 using HikariNoShisai.Common.Interfaces;
+using HikariNoShisai.Common.Models;
 using HikariNoShisai.DAL;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using System.Text.Json;
 
 namespace HikariNoShisai.BLL.Services
 {
@@ -136,6 +138,58 @@ namespace HikariNoShisai.BLL.Services
             }
 
             return user is not null && (user.Settings & mask) == mask;
+        }
+
+        public async Task AddAgentShortcutToUser(long userId, AgentShortcut shortcut)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(x => x.UserId == userId);
+            if (user is null)
+                return;
+
+            List<AgentShortcut> shortcuts;
+
+            if (string.IsNullOrEmpty(user.AgentsShortcut))
+            {
+                shortcuts = [];
+            }
+            else
+            {
+                shortcuts = JsonSerializer.Deserialize<List<AgentShortcut>>(user.AgentsShortcut) ?? [];
+            }
+
+            shortcuts.Add(shortcut);
+
+            user.AgentsShortcut = JsonSerializer.Serialize(shortcuts);
+            await _context.SaveChangesAsync();
+            _memoryCache.Remove(CacheKeyPrefix + userId);
+        }
+
+        public async Task<List<AgentShortcut>> GetAgentShortcuts(long userId)
+        {
+            var user = _memoryCache.Get<User>(CacheKeyPrefix + userId);
+            if (user is null)
+            {
+                user = await _context.Users.FirstOrDefaultAsync(x => x.UserId == userId);
+                if (user is null)
+                    return [];
+                _memoryCache.Set(CacheKeyPrefix + userId, user);
+            }
+            if (string.IsNullOrEmpty(user.AgentsShortcut))
+                return [];
+
+            return JsonSerializer.Deserialize<List<AgentShortcut>>(user.AgentsShortcut) ?? [];
+        }
+
+        public async Task RemoveAgentShortcuts(long userId, Guid AgentTerminalId)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(x => x.UserId == userId);
+            if (user is null || string.IsNullOrEmpty(user.AgentsShortcut))
+                return;
+
+            var shortcuts = JsonSerializer.Deserialize<List<AgentShortcut>>(user.AgentsShortcut) ?? [];
+            user.AgentsShortcut = JsonSerializer.Serialize(shortcuts.Where(x => x.AgentTerminalId != AgentTerminalId));
+            await _context.SaveChangesAsync();
+            _memoryCache.Remove(CacheKeyPrefix + userId);
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using HikariNoShisai.Common.Constants;
 using HikariNoShisai.Common.Entities;
+using HikariNoShisai.Common.Models;
 
 namespace HikariNoShisai.Common.Interfaces
 {
@@ -14,5 +15,8 @@ namespace HikariNoShisai.Common.Interfaces
         Task<IEnumerable<User>> GetUsers(UserSettings settings);
         Task<string> GetLanguageByUserId(long userId);
         Task<bool> CheckUserSettings(long userId, UserSettings settings);
+        Task AddAgentShortcutToUser(long userId, AgentShortcut shortcut);
+        Task<List<AgentShortcut>> GetAgentShortcuts(long userId);
+        Task RemoveAgentShortcuts(long userId, Guid AgentTerminalId);
     }
 }

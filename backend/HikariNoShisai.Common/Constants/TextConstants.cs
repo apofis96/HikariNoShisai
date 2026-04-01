@@ -15,11 +15,16 @@
             NotificationsHeader,
             LanguageHeader,
             OffsetHeader,
+            ShortcutHeader,
 
             ButtonCancel,
             ButtonNotifications,
             ButtonLanguage,
             ButtonOffset,
+            ButtonShortcut,
+            ButtonShortcutAdd,
+            ButtonShortcutRemove,
+
             ButtonEnglish,
             ButtonUkrainian,
             ButtonRussian,
@@ -37,7 +42,8 @@
             { MessageTemplate.SettingsHeader, "Choose Settings"},
             { MessageTemplate.NotificationsHeader, "Current Notifications setup is {0}\n Type new value or Cancel" },
             { MessageTemplate.LanguageHeader, "Select Language" },
-            { MessageTemplate.OffsetHeader, "Current timezone offset is {0}\n Type new value or Cancel"  },
+            { MessageTemplate.OffsetHeader, "Current timezone offset is {0}\n Type new value or Cancel" },
+            { MessageTemplate.ShortcutHeader, "Quick Access editing" },
 
             { MessageTemplate.ButtonCancel, "Cancel"  },
             { MessageTemplate.ButtonNotifications, "Notifications" },
@@ -46,6 +52,9 @@
             { MessageTemplate.ButtonEnglish, "English" },
             { MessageTemplate.ButtonUkrainian, "Українська" },
             { MessageTemplate.ButtonRussian, "Русский" },
+            { MessageTemplate.ButtonShortcut, "Quick Access" },
+            { MessageTemplate.ButtonShortcutAdd, "Add" },
+            { MessageTemplate.ButtonShortcutRemove, "Remove" },
         };
 
         private static readonly Dictionary<MessageTemplate, string> _ukTemplates = new()
@@ -66,6 +75,7 @@
             { MessageTemplate.ButtonNotifications, "Сповіщення" },
             { MessageTemplate.ButtonLanguage, "Мова" },
             { MessageTemplate.ButtonOffset, "Зміщення" },
+            { MessageTemplate.ButtonShortcut
         };
 
         private static readonly Dictionary<MessageTemplate, string> _ruTemplates = new()
