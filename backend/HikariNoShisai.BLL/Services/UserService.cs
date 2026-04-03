@@ -157,7 +157,19 @@ namespace HikariNoShisai.BLL.Services
                 shortcuts = JsonSerializer.Deserialize<List<AgentShortcut>>(user.AgentsShortcut) ?? [];
             }
 
-            shortcuts.Add(shortcut);
+            var existingShortcut = shortcuts.FirstOrDefault(x => x.AgentId == shortcut.AgentId && x.TerminalId == shortcut.TerminalId);
+            if (existingShortcut is not null)
+            {
+                existingShortcut.Name = shortcut.Name;
+                existingShortcut.RowIndex = shortcut.RowIndex;
+                existingShortcut.ColumnIndex = shortcut.ColumnIndex;
+            }
+            else
+            {
+                shortcuts.Add(shortcut);
+            }
+
+            shortcuts = shortcuts.OrderBy(x => x.AgentId).ThenBy(x => x.TerminalId).ToList();
 
             user.AgentsShortcut = JsonSerializer.Serialize(shortcuts);
             await _context.SaveChangesAsync();
@@ -180,14 +192,17 @@ namespace HikariNoShisai.BLL.Services
             return JsonSerializer.Deserialize<List<AgentShortcut>>(user.AgentsShortcut) ?? [];
         }
 
-        public async Task RemoveAgentShortcuts(long userId, Guid AgentTerminalId)
+        public async Task RemoveAgentShortcut(long userId, int index)
         {
             var user = await _context.Users.FirstOrDefaultAsync(x => x.UserId == userId);
             if (user is null || string.IsNullOrEmpty(user.AgentsShortcut))
                 return;
 
             var shortcuts = JsonSerializer.Deserialize<List<AgentShortcut>>(user.AgentsShortcut) ?? [];
-            user.AgentsShortcut = JsonSerializer.Serialize(shortcuts.Where(x => x.AgentTerminalId != AgentTerminalId));
+            shortcuts.RemoveAt(index);
+            shortcuts = shortcuts.OrderBy(x => x.AgentId).ThenBy(x => x.TerminalId).ToList();
+
+            user.AgentsShortcut = JsonSerializer.Serialize(shortcuts);
             await _context.SaveChangesAsync();
             _memoryCache.Remove(CacheKeyPrefix + userId);
         }

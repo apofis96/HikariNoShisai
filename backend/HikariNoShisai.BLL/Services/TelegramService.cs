@@ -49,8 +49,8 @@ namespace HikariNoShisai.BLL.Services
                 TelegramChatStep.SettingsOffset => SetSettingsOffsetCommand(userId, message, language),
                 TelegramChatStep.SettingsLanguage => SetLanguageCommand(userId, message, language),
                 TelegramChatStep.SettingsShortcut => ShortcutCommand(userId, message, language),
-                TelegramChatStep.SettingsShortcutAdd =>,
-                TelegramChatStep.SettingsShortcutRemove =>,
+                TelegramChatStep.SettingsShortcutAdd => ShortcutAddCommand(userId, message, language),
+                TelegramChatStep.SettingsShortcutRemove => ShortcutRemoveCommand(userId, message, language),
                 _ => Task.FromResult(GetMessageFromTemplate(MessageTemplate.UnknownCommand, language))
             };
         }
@@ -189,7 +189,13 @@ namespace HikariNoShisai.BLL.Services
 
             if (command == MessageTemplate.ButtonShortcutAdd)
             {
-                
+                return FormatResponse(
+                    userId,
+                    language,
+                    MessageTemplate.ShortcutAddHeader,
+                    [MessageTemplate.ButtonCancel],
+                    TelegramChatStep.SettingsShortcutAdd
+                );
             }
             else if (command == MessageTemplate.ButtonShortcutRemove)
             {
@@ -197,6 +203,54 @@ namespace HikariNoShisai.BLL.Services
             }
             return FormatResponse(userId, language, MessageTemplate.InvalidFormat);
         }
+
+        private async Task<string> ShortcutAddCommand(long userId, string message, string language)
+        {
+            string[] parts = message.Split(' ', 2);
+
+            if (!Guid.TryParse(parts[0], out var terminalId) || parts.Length == 1 || String.IsNullOrEmpty(parts[1]))
+                return FormatResponse(userId, language, MessageTemplate.InvalidFormat);
+            var agentId = await _agentTerminal.GetAgentIdByTerminalId(terminalId);
+            if (agentId == Guid.Empty)
+                return FormatResponse(userId, language, MessageTemplate.InvalidFormat);
+            
+            var agenShortcut = new AgentShortcut
+            {
+                AgentId = agentId,
+                TerminalId = terminalId,
+                Name = parts[1],
+                RowIndex = 0,
+                ColumnIndex = 0
+            };
+            await _userService.AddAgentShortcutToUser(userId, agenShortcut);
+
+            return FormatResponse(userId, language, MessageTemplate.SuccessfulCommand, null, TelegramChatStep.None);
+        }
+
+        private async Task<string> ShortcutRemoveCommand(long userId, string message, string language)
+        {
+            if (Int32.TryParse(message.Split('.', 2)[0], out var index))
+            {
+                await _userService.RemoveAgentShortcut(userId, index - 1);
+                return FormatResponse(userId, language, MessageTemplate.SuccessfulCommand, null, TelegramChatStep.None);
+            }
+
+            var shortcuts = await _userService.GetAgentShortcuts(userId);
+            var response = FormatResponse(
+                userId,
+                language,
+                MessageTemplate.ShortcutRemoveHeader,
+                [ , MessageTemplate.ButtonCancel],
+                TelegramChatStep.SettingsShortcutRemove
+            );
+
+            var shortcutButtons = shortcuts.Select((s, i) => $"{i + 1}. {s.Name}").ToArray();
+
+            return ButtonFormatter.AddButtons(
+                GetMessageFromTemplate(MessageTemplate.ShortcutRemoveHeader, language),
+                shortcutButtons.Append(GetMessageFromTemplate(MessageTemplate.ButtonCancel, language)).ToArray());
+        }
+
         #endregion
 
         private async Task<string> CommandExecute(Func<Task> action, string language)

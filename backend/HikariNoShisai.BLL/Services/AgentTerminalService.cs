@@ -50,6 +50,12 @@ namespace HikariNoShisai.BLL.Services
             _memoryCache.Remove(CacheKeyPrefix + agentId + terminalId);
         }
 
+        public async Task<Guid> GetAgentIdByTerminalId(Guid terminalId)
+        {
+            var terminal = await _context.AgentTerminals.Where(x => x.Id == terminalId).FirstOrDefaultAsync();
+            return terminal?.AgentId ?? Guid.Empty;
+        }
+
         private static readonly Func<HikariNoShisaiContext, Guid, Guid, Task<AgentTerminal?>> GetAgentTerminal =
         EF.CompileAsyncQuery((HikariNoShisaiContext context, Guid agentId, Guid terminalId) =>
             context.AgentTerminals
