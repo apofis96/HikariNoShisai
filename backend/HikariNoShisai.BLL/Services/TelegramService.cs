@@ -32,9 +32,13 @@ namespace HikariNoShisai.BLL.Services
             {
                 var command = GetTemplateFromMessage(message, userLanguage);
                 if (command == MessageTemplate.ButtonCancel)
-                    return FormatResponse(userId, userLanguage, MessageTemplate.SuccessfulCommand, null, TelegramChatStep.None);
+                    return await FormatResponse(userId, userLanguage, MessageTemplate.SuccessfulCommand, [MessageTemplate.ButtonShortcutPlaceholder], TelegramChatStep.None);
 
                 return await ParseDialog(cacheEntry.ChatStep, userId, message, userLanguage);
+            }
+            if (!String.IsNullOrEmpty(message) && Int32.TryParse(message.Split('.', 2)[0], out var index))
+            {
+                return await ParseToggleIndex(userId, index, userLanguage);
             }
 
             return GetMessageFromTemplate(MessageTemplate.InvalidFormat, userLanguage);
@@ -62,14 +66,14 @@ namespace HikariNoShisai.BLL.Services
             return parts[0] switch
             {
                 TelegramCommands.ShowAll => ShowAllCommand(),
-                TelegramCommands.Settings => Task.FromResult(FormatResponse(
+                TelegramCommands.Settings => FormatResponse(
                     userId,
                     language,
                     MessageTemplate.SettingsHeader,
                     [MessageTemplate.ButtonShortcut, MessageTemplate.ButtonNotifications, MessageTemplate.ButtonLanguage, MessageTemplate.ButtonOffset, MessageTemplate.ButtonCancel],
                     TelegramChatStep.Settings   
-                )),
-                TelegramCommands.Toggle when parts.Length == 3 => CommandExecute(() => _agentTerminal.ToggleAgentTerminalStatus(Guid.Parse(parts[1]), Guid.Parse(parts[2])), language),
+                ),
+                TelegramCommands.Toggle when parts.Length == 3 => CommandExecute(() => _agentTerminal.ToggleAgentTerminalStatus(Guid.Parse(parts[1]), Guid.Parse(parts[2])), language, userId),
                 _ => Task.FromResult(GetMessageFromTemplate(MessageTemplate.UnknownCommand, language))
             };
         }
@@ -90,27 +94,41 @@ namespace HikariNoShisai.BLL.Services
             return result;
         }
 
+        private async Task<string> ParseToggleIndex(long userId, int index, string language)
+        {
+            var shortcuts = await _userService.GetAgentShortcuts(userId);
+            var shortcut = shortcuts.ElementAtOrDefault(index - 1);
+            if (shortcut is null)
+            {
+                return await FormatResponse(userId, language, MessageTemplate.InvalidFormat, [MessageTemplate.ButtonShortcutPlaceholder]);
+            }
+
+            await _agentTerminal.ToggleAgentTerminalStatus(shortcut.AgentId, shortcut.TerminalId);
+
+            return await FormatResponse(userId, language, MessageTemplate.SuccessfulCommand, [MessageTemplate.ButtonShortcutPlaceholder]);
+        }
+
         #region Settings Dialog
         private Task<string> ParseSettingsCommand(long userId, string message, string language)
         {
             var command = GetTemplateFromMessage(message, language);
             return command switch
             {
-                MessageTemplate.ButtonShortcut => Task.FromResult(FormatResponse(
+                MessageTemplate.ButtonShortcut => FormatResponse(
                     userId,
                     language,
                     MessageTemplate.ShortcutHeader,
                     [MessageTemplate.ButtonShortcutAdd, MessageTemplate.ButtonShortcutRemove, MessageTemplate.ButtonCancel],
                     TelegramChatStep.SettingsShortcut
-                )),
+                ),
                 MessageTemplate.ButtonNotifications => ParseSettingsNotificationsCommand(userId, language),
-                MessageTemplate.ButtonLanguage => Task.FromResult(FormatResponse(
+                MessageTemplate.ButtonLanguage => FormatResponse(
                     userId,
                     language,
                     MessageTemplate.LanguageHeader,
                     [MessageTemplate.ButtonEnglish, MessageTemplate.ButtonUkrainian, MessageTemplate.ButtonRussian, MessageTemplate.ButtonCancel],
                     TelegramChatStep.SettingsLanguage
-                )),
+                ),
                 MessageTemplate.ButtonOffset => ParseSettingsOffsetCommand(userId, language),
                 _ => Task.FromResult(GetMessageFromTemplate(MessageTemplate.UnknownCommand, language))
             };
@@ -119,7 +137,7 @@ namespace HikariNoShisai.BLL.Services
         private async Task<string> ParseSettingsNotificationsCommand(long userId, string language)
         {
             var userSettings = await _userService.GetSettings(userId);
-            var response = FormatResponse(
+            var response = await FormatResponse(
                 userId,
                 language,
                 MessageTemplate.NotificationsHeader,
@@ -135,16 +153,16 @@ namespace HikariNoShisai.BLL.Services
             if (Enum.TryParse<UserSettings>(message, true, out var newSetting))
             {
                 await _userService.SetSettings(userId, newSetting);
-                return FormatResponse(userId, language, MessageTemplate.SuccessfulCommand, null, TelegramChatStep.None);
+                return await FormatResponse(userId, language, MessageTemplate.SuccessfulCommand, [MessageTemplate.ButtonShortcutPlaceholder], TelegramChatStep.None);
             }
 
-            return FormatResponse(userId, language, MessageTemplate.InvalidFormat);
+            return await FormatResponse(userId, language, MessageTemplate.InvalidFormat);
         }
 
         private async Task<string> ParseSettingsOffsetCommand(long userId, string language)
         {
             var offset = await _settingsService.GetTimezoneOffset();
-            var response = FormatResponse(
+            var response = await FormatResponse(
                 userId,
                 language,
                 MessageTemplate.OffsetHeader,
@@ -160,9 +178,9 @@ namespace HikariNoShisai.BLL.Services
             if (int.TryParse(message, out var newOffset) && newOffset >= (-12 * 60) && newOffset <= (14 * 60))
             {
                 await _settingsService.SetTimezoneOffset(newOffset);
-                return FormatResponse(userId, language, MessageTemplate.SuccessfulCommand, null, TelegramChatStep.None);
+                return await FormatResponse(userId, language, MessageTemplate.SuccessfulCommand, [MessageTemplate.ButtonShortcutPlaceholder], TelegramChatStep.None);
             }
-            return FormatResponse(userId, language, MessageTemplate.InvalidFormat);
+            return await FormatResponse(userId, language, MessageTemplate.InvalidFormat);
         }
 
         private async Task<string> SetLanguageCommand(long userId, string message, string language)
@@ -178,18 +196,18 @@ namespace HikariNoShisai.BLL.Services
             if (newLanguage is not null)
             {
                 await _userService.SetLanguage(userId, newLanguage);
-                return FormatResponse(userId, newLanguage, MessageTemplate.SuccessfulCommand, null, TelegramChatStep.None);
+                return await FormatResponse(userId, newLanguage, MessageTemplate.SuccessfulCommand, [MessageTemplate.ButtonShortcutPlaceholder], TelegramChatStep.None);
             }
-            return FormatResponse(userId, language, MessageTemplate.InvalidFormat);
+            return await FormatResponse(userId, language, MessageTemplate.InvalidFormat);
         }
 
-        private async Task<string> ShortcutCommand(long userId,string message, string language)
+        private async Task<string> ShortcutCommand(long userId, string message, string language)
         {
             var command = GetTemplateFromMessage(message, language);
 
             if (command == MessageTemplate.ButtonShortcutAdd)
             {
-                return FormatResponse(
+                return await FormatResponse(
                     userId,
                     language,
                     MessageTemplate.ShortcutAddHeader,
@@ -199,9 +217,9 @@ namespace HikariNoShisai.BLL.Services
             }
             else if (command == MessageTemplate.ButtonShortcutRemove)
             {
-
+                return await ShortcutRemoveCommand(userId, "", language);
             }
-            return FormatResponse(userId, language, MessageTemplate.InvalidFormat);
+            return await FormatResponse(userId, language, MessageTemplate.InvalidFormat);
         }
 
         private async Task<string> ShortcutAddCommand(long userId, string message, string language)
@@ -209,10 +227,10 @@ namespace HikariNoShisai.BLL.Services
             string[] parts = message.Split(' ', 2);
 
             if (!Guid.TryParse(parts[0], out var terminalId) || parts.Length == 1 || String.IsNullOrEmpty(parts[1]))
-                return FormatResponse(userId, language, MessageTemplate.InvalidFormat);
+                return await FormatResponse(userId, language, MessageTemplate.InvalidFormat);
             var agentId = await _agentTerminal.GetAgentIdByTerminalId(terminalId);
             if (agentId == Guid.Empty)
-                return FormatResponse(userId, language, MessageTemplate.InvalidFormat);
+                return await FormatResponse(userId, language, MessageTemplate.InvalidFormat);
             
             var agenShortcut = new AgentShortcut
             {
@@ -224,43 +242,30 @@ namespace HikariNoShisai.BLL.Services
             };
             await _userService.AddAgentShortcutToUser(userId, agenShortcut);
 
-            return FormatResponse(userId, language, MessageTemplate.SuccessfulCommand, null, TelegramChatStep.None);
+            return await FormatResponse(userId, language, MessageTemplate.SuccessfulCommand, [MessageTemplate.ButtonShortcutPlaceholder], TelegramChatStep.None);
         }
 
         private async Task<string> ShortcutRemoveCommand(long userId, string message, string language)
         {
-            if (Int32.TryParse(message.Split('.', 2)[0], out var index))
+            if (!String.IsNullOrEmpty(message) && Int32.TryParse(message.Split('.', 2)[0], out var index))
             {
                 await _userService.RemoveAgentShortcut(userId, index - 1);
-                return FormatResponse(userId, language, MessageTemplate.SuccessfulCommand, null, TelegramChatStep.None);
+                return await FormatResponse(userId, language, MessageTemplate.SuccessfulCommand, [MessageTemplate.ButtonShortcutPlaceholder], TelegramChatStep.None);
             }
 
-            var shortcuts = await _userService.GetAgentShortcuts(userId);
-            var response = FormatResponse(
-                userId,
-                language,
-                MessageTemplate.ShortcutRemoveHeader,
-                [ , MessageTemplate.ButtonCancel],
-                TelegramChatStep.SettingsShortcutRemove
-            );
-
-            var shortcutButtons = shortcuts.Select((s, i) => $"{i + 1}. {s.Name}").ToArray();
-
-            return ButtonFormatter.AddButtons(
-                GetMessageFromTemplate(MessageTemplate.ShortcutRemoveHeader, language),
-                shortcutButtons.Append(GetMessageFromTemplate(MessageTemplate.ButtonCancel, language)).ToArray());
+            return await FormatResponse(userId, language, MessageTemplate.ShortcutRemoveHeader, [MessageTemplate.ButtonShortcutPlaceholder, MessageTemplate.ButtonCancel]);
         }
 
         #endregion
 
-        private async Task<string> CommandExecute(Func<Task> action, string language)
+        private async Task<string> CommandExecute(Func<Task> action, string language, long userId)
         {
             await action();
 
-            return GetMessageFromTemplate(MessageTemplate.SuccessfulCommand, language);
+            return await FormatResponse(userId, language, MessageTemplate.SuccessfulCommand, [MessageTemplate.ButtonShortcutPlaceholder], TelegramChatStep.None);
         }
 
-        private string FormatResponse(long userId, string language, MessageTemplate template, MessageTemplate[]? buttons = null, TelegramChatStep? chatStep = null)
+        private async Task<string> FormatResponse(long userId, string language, MessageTemplate template, MessageTemplate[]? buttons = null, TelegramChatStep? chatStep = null)
         {
             if (chatStep.HasValue)
             {
@@ -274,10 +279,20 @@ namespace HikariNoShisai.BLL.Services
                 }
             }
             buttons ??= [];
+            string[] formatedButtons = [];
 
-            return ButtonFormatter.AddButtons(
-                GetMessageFromTemplate(template, language),
-                GetMessageFromTemplate(buttons, language));
+            var shortcutPlaceholder = buttons.IndexOf(MessageTemplate.ButtonShortcutPlaceholder);
+
+            if (shortcutPlaceholder != -1)
+            {
+                var shortcuts = await _userService.GetAgentShortcuts(userId);
+                formatedButtons = [.. shortcuts.Select((s, i) => $"{i + 1}. {s.Name}")];
+                buttons = [.. buttons.AsSpan(0, shortcutPlaceholder), .. buttons.AsSpan(shortcutPlaceholder + 1)];
+            }
+
+            formatedButtons = [.. formatedButtons, .. GetMessageFromTemplate(buttons, language)];
+
+            return ButtonFormatter.AddButtons(GetMessageFromTemplate(template, language), formatedButtons);
         }
         private string GetCacheKey(long userId) => $"{CacheKeyPrefix}{userId}";
         private void SetCache(long userId, TelegramChatStep chatStep) => _memoryCache.Set(GetCacheKey(userId), new TelegramCache { ChatStep = chatStep }, Expiration);

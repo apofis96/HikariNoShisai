@@ -26,6 +26,7 @@
             ButtonShortcut,
             ButtonShortcutAdd,
             ButtonShortcutRemove,
+            ButtonShortcutPlaceholder,
 
             ButtonEnglish,
             ButtonUkrainian,
