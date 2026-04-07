@@ -232,7 +232,7 @@ namespace HikariNoShisai.BLL.Services
             if (agentId == Guid.Empty)
                 return await FormatResponse(userId, language, MessageTemplate.InvalidFormat);
             
-            var agenShortcut = new AgentShortcut
+            var agentShortcut = new AgentShortcut
             {
                 AgentId = agentId,
                 TerminalId = terminalId,
@@ -240,7 +240,7 @@ namespace HikariNoShisai.BLL.Services
                 RowIndex = 0,
                 ColumnIndex = 0
             };
-            await _userService.AddAgentShortcutToUser(userId, agenShortcut);
+            await _userService.AddAgentShortcutToUser(userId, agentShortcut);
 
             return await FormatResponse(userId, language, MessageTemplate.SuccessfulCommand, [MessageTemplate.ButtonShortcutPlaceholder], TelegramChatStep.None);
         }
@@ -279,20 +279,20 @@ namespace HikariNoShisai.BLL.Services
                 }
             }
             buttons ??= [];
-            string[] formatedButtons = [];
+            string[] formattedButtons = [];
 
             var shortcutPlaceholder = buttons.IndexOf(MessageTemplate.ButtonShortcutPlaceholder);
 
             if (shortcutPlaceholder != -1)
             {
                 var shortcuts = await _userService.GetAgentShortcuts(userId);
-                formatedButtons = [.. shortcuts.Select((s, i) => $"{i + 1}. {s.Name}")];
+                formattedButtons = [.. shortcuts.Select((s, i) => $"{i + 1}. {s.Name}")];
                 buttons = [.. buttons.AsSpan(0, shortcutPlaceholder), .. buttons.AsSpan(shortcutPlaceholder + 1)];
             }
 
-            formatedButtons = [.. formatedButtons, .. GetMessageFromTemplate(buttons, language)];
+            formattedButtons = [.. formattedButtons, .. GetMessageFromTemplate(buttons, language)];
 
-            return ButtonFormatter.AddButtons(GetMessageFromTemplate(template, language), formatedButtons);
+            return ButtonFormatter.AddButtons(GetMessageFromTemplate(template, language), formattedButtons);
         }
         private string GetCacheKey(long userId) => $"{CacheKeyPrefix}{userId}";
         private void SetCache(long userId, TelegramChatStep chatStep) => _memoryCache.Set(GetCacheKey(userId), new TelegramCache { ChatStep = chatStep }, Expiration);
