@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="ScottPlot" Version="5.1.58" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\HikariNoShisai.Common\HikariNoShisai.Common.csproj" />
     <ProjectReference Include="..\HikariNoShisai.DAL\HikariNoShisai.DAL.csproj" />
   </ItemGroup>

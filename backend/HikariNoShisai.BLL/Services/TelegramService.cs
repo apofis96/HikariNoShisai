@@ -4,6 +4,7 @@ using HikariNoShisai.Common.Interfaces;
 using HikariNoShisai.Common.Models;
 using Microsoft.Extensions.Caching.Memory;
 using static HikariNoShisai.Common.Constants.TextConstants;
+using static HikariNoShisai.Common.Helpers.StringHelpers;
 
 namespace HikariNoShisai.BLL.Services
 {
@@ -12,36 +13,45 @@ namespace HikariNoShisai.BLL.Services
         IAgentTerminalService agentTerminal,
         IUserService userService,
         IMemoryCache memoryCache,
-        ISettingsService settingsService) : ITelegramService
+        ISettingsService settingsService,
+        IAgentStatusLogService agentStatusLogService) : ITelegramService
     {
         private readonly IAgentService _agentService = agentService;
         private readonly IAgentTerminalService _agentTerminal = agentTerminal;
         private readonly IUserService _userService = userService;
         private readonly ISettingsService _settingsService = settingsService;
         private readonly IMemoryCache _memoryCache = memoryCache;
+        private readonly IAgentStatusLogService _agentStatusLogService = agentStatusLogService;
         private const string CacheKeyPrefix = "telegram_";
         private readonly TimeSpan Expiration = TimeSpan.FromMinutes(5);
 
-        public async Task<string> Handle(long userId, string message)
+        public async Task<TelegramHtmlMessage> Handle(long userId, string message)
         {
             var userLanguage = await _userService.GetLanguageByUserId(userId);
             if (message.StartsWith('/'))
                 return await ParseCommand(userId, message, userLanguage);
 
+            var response = new TelegramHtmlMessage();
             if (_memoryCache.TryGetValue<TelegramCache>(GetCacheKey(userId), out var cacheEntry) && cacheEntry is not null)
             {
                 var command = GetTemplateFromMessage(message, userLanguage);
                 if (command == MessageTemplate.ButtonCancel)
-                    return await FormatResponse(userId, userLanguage, MessageTemplate.SuccessfulCommand, [MessageTemplate.ButtonShortcutPlaceholder], TelegramChatStep.None);
+                {
+                    response.HtmlContent = await FormatResponse(userId, userLanguage, MessageTemplate.SuccessfulCommand, [MessageTemplate.ButtonShortcutPlaceholder], TelegramChatStep.None);
+                    return response;
+                }
 
-                return await ParseDialog(cacheEntry.ChatStep, userId, message, userLanguage);
+                response.HtmlContent = await ParseDialog(cacheEntry.ChatStep, userId, message, userLanguage);
+                return response;
             }
             if (!String.IsNullOrEmpty(message) && Int32.TryParse(message.Split('.', 2)[0], out var index))
             {
-                return await ParseToggleIndex(userId, index, userLanguage);
+                response.HtmlContent = await ParseToggleIndex(userId, index, userLanguage);
+                return response;
             }
 
-            return GetMessageFromTemplate(MessageTemplate.InvalidFormat, userLanguage);
+            response.HtmlContent = GetMessageFromTemplate(MessageTemplate.InvalidFormat, userLanguage);
+            return response;
         }
 
         private Task<string> ParseDialog(TelegramChatStep chatStep, long userId, string message, string language)
@@ -59,26 +69,56 @@ namespace HikariNoShisai.BLL.Services
             };
         }
 
-        private Task<string> ParseCommand(long userId, string message, string language)
+        private Task<TelegramHtmlMessage> ParseCommand(long userId, string message, string language)
         {
             var parts = message.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
             return parts[0] switch
             {
+                TelegramCommands.Statistics => StatisticsCommand(userId, message, language),
                 TelegramCommands.ShowAll => ShowAllCommand(),
-                TelegramCommands.Settings => FormatResponse(
+                TelegramCommands.Settings => SettingsCommand(userId, message, language),
+                TelegramCommands.Toggle when parts.Length == 3 => ToggleCommand(userId, parts, language),
+                _ => Task.FromResult(new TelegramHtmlMessage { HtmlContent = GetMessageFromTemplate(MessageTemplate.UnknownCommand, language) })
+            };
+        }
+
+        private async Task<TelegramHtmlMessage> StatisticsCommand(long userId, string message, string language)
+        {
+            var imageByte = await _agentStatusLogService.GetGridStatistics(Guid.Empty);
+            if (imageByte is null)
+                return new TelegramHtmlMessage { HtmlContent = GetMessageFromTemplate(MessageTemplate.InvalidFormat, language) };
+
+            return new TelegramHtmlMessage
+            {
+                HtmlContent = GetStreamTag(0),
+                Streams = [new MemoryStream(imageByte)]
+            };
+        }
+
+        private async Task<TelegramHtmlMessage> ToggleCommand(long userId, string[] parts, string language)
+        {
+            return new TelegramHtmlMessage
+            {
+                HtmlContent = await CommandExecute(() => _agentTerminal.ToggleAgentTerminalStatus(Guid.Parse(parts[1]), Guid.Parse(parts[2])), language, userId)
+            };
+        }
+
+        private async Task<TelegramHtmlMessage> SettingsCommand(long userId, string message, string language)
+        {
+            return new TelegramHtmlMessage
+            {
+                HtmlContent = await FormatResponse(
                     userId,
                     language,
                     MessageTemplate.SettingsHeader,
                     [MessageTemplate.ButtonShortcut, MessageTemplate.ButtonNotifications, MessageTemplate.ButtonLanguage, MessageTemplate.ButtonOffset, MessageTemplate.ButtonCancel],
-                    TelegramChatStep.Settings   
-                ),
-                TelegramCommands.Toggle when parts.Length == 3 => CommandExecute(() => _agentTerminal.ToggleAgentTerminalStatus(Guid.Parse(parts[1]), Guid.Parse(parts[2])), language, userId),
-                _ => Task.FromResult(GetMessageFromTemplate(MessageTemplate.UnknownCommand, language))
+                    TelegramChatStep.Settings
+                )
             };
         }
 
-        private async Task<string> ShowAllCommand()
+        private async Task<TelegramHtmlMessage> ShowAllCommand()
         {
             var agents = await _agentService.GetAll();
             var result = "Agents:\n";
@@ -91,7 +131,7 @@ namespace HikariNoShisai.BLL.Services
                 }
             }
 
-            return result;
+            return new TelegramHtmlMessage { HtmlContent = result };
         }
 
         private async Task<string> ParseToggleIndex(long userId, int index, string language)

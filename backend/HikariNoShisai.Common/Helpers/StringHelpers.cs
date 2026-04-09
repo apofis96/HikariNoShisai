@@ -22,6 +22,11 @@
         {
             return $"<{input}>";
         }
+
+        public static string GetStreamTag(int index)
+        {
+            return $"<c>stream:{index}</c>";
+        }
     }
 }
 

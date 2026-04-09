@@ -6,6 +6,7 @@ using HikariNoShisai.Common.Interfaces;
 using HikariNoShisai.Common.Models;
 using HikariNoShisai.DAL;
 using Microsoft.EntityFrameworkCore;
+using ScottPlot;
 
 namespace HikariNoShisai.BLL.Services
 {
@@ -28,8 +29,26 @@ namespace HikariNoShisai.BLL.Services
                 BatteryVoltage = statusLog.BatteryVoltage,
                 CreatedAt = dateNow,
             });
-            
+
             await _context.SaveChangesAsync();
+        }
+
+        public async Task<byte[]> GetGridStatistics(Guid agentId)
+        {
+            //POC for ScottPlot library usage
+            Plot myPlot = new();
+
+            double[] values = { 5, 2, 8, 4, 8 };
+            var pie = myPlot.Add.Pie(values);
+            pie.ExplodeFraction = .1;
+
+            myPlot.Axes.Frameless();
+            myPlot.HideGrid();
+
+            byte[] imageBytes = myPlot.GetImageBytes(400, 400, ImageFormat.Png);
+
+            return imageBytes;
+
         }
 
         private async Task EmitGridNotification(AgentStatusLogRequest statusLog, DateTimeOffset dateNow)

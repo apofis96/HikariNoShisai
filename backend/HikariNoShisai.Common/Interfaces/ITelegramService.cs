@@ -1,7 +1,9 @@
-﻿namespace HikariNoShisai.Common.Interfaces
+﻿using HikariNoShisai.Common.Models;
+
+namespace HikariNoShisai.Common.Interfaces
 {
     public interface ITelegramService
     {
-        Task<string> Handle(long userId, string message);
+        Task<TelegramHtmlMessage> Handle(long userId, string message);
     }
 }

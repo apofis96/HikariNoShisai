@@ -1,6 +1,7 @@
 ﻿using HikariNoShisai.Common.Configs;
 using HikariNoShisai.Common.Constants;
 using HikariNoShisai.Common.Interfaces;
+using HikariNoShisai.Common.Models;
 using Microsoft.Extensions.Options;
 using Telegram.Bot;
 using Telegram.Bot.Extensions;
@@ -24,6 +25,7 @@ namespace HikariNoShisai.WebAPI.Endpoints
                     new BotCommand { Command = TelegramCommands.ShowAll, Description = "Show all terminals" },
                     new BotCommand { Command = TelegramCommands.Toggle, Description = "Toggle [terminal]" },
                     new BotCommand { Command = TelegramCommands.Settings, Description = "Show settings" },
+                    new BotCommand { Command = TelegramCommands.Statistics, Description = "Show statistics [days], default 1" },
                 ]);
                 return $"Webhook set to {config.Value.Url + route}";
             });
@@ -56,7 +58,7 @@ namespace HikariNoShisai.WebAPI.Endpoints
                 return;
 
             var userId = msg.From.Id;
-            string response;
+            TelegramHtmlMessage response;
 
             try
             {
@@ -64,7 +66,7 @@ namespace HikariNoShisai.WebAPI.Endpoints
                 {
                     var userLanguage = msg.From.LanguageCode ?? LanguageCodes.English;
                     await userService.Create(userId, msg.Chat.Id, userLanguage);
-                    response = TextConstants.GetMessageFromTemplate(TextConstants.MessageTemplate.WelcomeMessage, userLanguage);
+                    response = new() { HtmlContent = TextConstants.GetMessageFromTemplate(TextConstants.MessageTemplate.WelcomeMessage, userLanguage) };
                 }
                 else
                 {
@@ -76,17 +78,20 @@ namespace HikariNoShisai.WebAPI.Endpoints
                 try
                 {
                     var isVerbose = await userService.CheckUserSettings(userId, UserSettings.VerboseNotifications);
-                    response = "An error occurred";
+                    response = new() { HtmlContent = "An error occurred" };
                     if (isVerbose)
-                        response += $": {ex.Message}";
+                        response.HtmlContent += $": {ex.Message}";
                 }
                 catch (Exception exx)
                 {
-                    response = $"An error occurred while checking user settings: {exx.Message}\n\nOriginal error {ex.Message}";
+                    response = new()
+                    {
+                        HtmlContent = $"An error occurred while checking user settings: {exx.Message}\n\nOriginal error {ex.Message}"
+                    };
                 }
             }
 
-            await bot.SendHtml(msg.Chat, response);
+            await bot.SendHtml(msg.Chat, response.HtmlContent, streams: response.Streams);
         }
     }
 }
