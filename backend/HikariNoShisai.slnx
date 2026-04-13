@@ -1,4 +1,5 @@
 <Solution>
+  <Project Path="HikariNoShisai.BLL.Tests/HikariNoShisai.BLL.Tests.csproj" Id="db6ecf52-e48c-4b98-8eb9-c16d8d79fa71" />
   <Project Path="HikariNoShisai.BLL/HikariNoShisai.BLL.csproj" Id="f08fb854-a1eb-49eb-bd89-3265fae69853" />
   <Project Path="HikariNoShisai.Common/HikariNoShisai.Common.csproj" Id="da3c2e12-c0e2-468d-9de6-52debfc554df" />
   <Project Path="HikariNoShisai.DAL/HikariNoShisai.DAL.csproj" Id="cee64173-b9f7-4531-9dd0-972758ea6d5d" />
