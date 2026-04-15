@@ -20,6 +20,7 @@ char m2;
 char m3;
 char m4;
 int weather;
+bool isSaved = true;
 
 void write_vector(bool arr[], bool isSeg, bool isDot = false, int delay = 0);
 
@@ -34,6 +35,7 @@ bool seg5[] = { false, false, true, false, false, false, false, false };
 bool seg6[] = { false, true, false, false, false, false, false, false };
 bool seg7[] = { true, false, false, false, false, false, false, false };
 bool segAll[] = { true, true, true, true, true, true, true, true };
+bool segMinor[] = { true, true, true, true, false, false, false, false };
 
 bool dig1[] = { false, false, false, true, false, false, true };
 bool dig2[] = { true, false, true, true, true, true, false };
@@ -59,6 +61,64 @@ void debugPrint(const char* msg) {
   if (isDebug) {
     Serial.print(msg);
   }
+}
+
+int getWeather(const char* url, int retryCount = 3) {
+  int value = 0;
+  bool insideBrackets = false;
+  bool isNegative = false;
+  bool isSuccess = false;
+
+  std::unique_ptr<BearSSL::WiFiClientSecure> client(new BearSSL::WiFiClientSecure);
+  client->setInsecure();
+  HTTPClient https;
+
+  if (https.begin(*client, url)) {
+    https.addHeader("x-api-key", _apiKey);
+    int httpCode = https.GET();
+
+    if (httpCode == HTTP_CODE_OK) {
+      WiFiClient& stream = https.getStream();
+
+      while (stream.connected()) {
+        if (!stream.available()) continue;
+        char c = stream.read();
+
+        if (c == '<') {
+          insideBrackets = true;
+        } else if (c == '>' && insideBrackets) {
+          insideBrackets = false;
+          if (isNegative) {
+            value = -value;
+          }
+          isSuccess = true;
+          break;
+        } else if (insideBrackets) {
+          if (c == '-') {
+            isNegative = true;
+          } else if (c >= '0' && c <= '9') {
+            value = value * 10 + (c - '0');
+          } else {
+            value = -99;
+            break;
+          }
+        }
+      }
+    }
+    https.end();
+  }
+  debugPrint("\nweather done\n");
+
+  if (isSuccess) {
+    isSaved = false;
+    return value;
+  }
+  if (retryCount > -1) {
+    return getWeather(url, retryCount -1);
+  }
+  
+  isSaved = true;
+  return weather;
 }
 
 void setup() {
@@ -128,53 +188,6 @@ void setup() {
   debugPrint(tz.dateTime().c_str());
   debugPrint("\nTimezone: ");
   debugPrint(tz.getTimezoneName().c_str());
-}
-
-int getWeather(const char* url) {
-  int value = 0;
-  bool insideBrackets = false;
-  bool isNegative = false;
-
-  std::unique_ptr<BearSSL::WiFiClientSecure> client(new BearSSL::WiFiClientSecure);
-  client->setInsecure();
-  HTTPClient https;
-
-  if (https.begin(*client, url)) {
-    https.addHeader("x-api-key", _apiKey);
-    int httpCode = https.GET();
-
-    if (httpCode == HTTP_CODE_OK) {
-      WiFiClient& stream = https.getStream();
-
-      while (stream.connected()) {
-        if (!stream.available()) continue;
-        char c = stream.read();
-
-        if (c == '<') {
-          insideBrackets = true;
-        } else if (c == '>' && insideBrackets) {
-          insideBrackets = false;
-          if (isNegative) {
-            value = -value;
-          }
-          break;
-        } else if (insideBrackets) {
-          if (c == '-') {
-            isNegative = true;
-          } else if (c >= '0' && c <= '9') {
-            value = value * 10 + (c - '0');
-          } else {
-            value = -99;
-            break;
-          }
-        }
-      }
-    }
-    https.end();
-  }
-  debugPrint("\nweather done\n");
-
-  return value;
 }
 
 void transformWeather(int temp) {
@@ -274,8 +287,12 @@ void loop() {
   isDot = tz.second() % 2 == 1;
 
   if (minut != oldMinut && minut % 10 == 0) {
+    write_vector(segMinor, false);
+    write_vector(digCelsium, true);
     oldMinut = minut;
     weather = getWeather(weatherUrl);
+    write_vector(emty, false);
+    write_vector(emty, true);
     transformWeather(weather);
   }
 
@@ -306,7 +323,7 @@ void loop() {
   write_vector(seg6, false);
   write_vector(get_vector(m3), true, false, segDelayMinor);
   write_vector(seg7, false);
-  write_vector(get_vector(m4), true, false, segDelayMinor);
+  write_vector(get_vector(m4), true, isSaved, segDelayMinor);
 
   write_vector(emty, false);
   write_vector(emty, true);
