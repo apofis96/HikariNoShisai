@@ -3,6 +3,7 @@ using HikariNoShisai.Common.Helpers;
 using HikariNoShisai.Common.Interfaces;
 using HikariNoShisai.Common.Models;
 using Microsoft.Extensions.Caching.Memory;
+using ScottPlot;
 using static HikariNoShisai.Common.Constants.TextConstants;
 using static HikariNoShisai.Common.Helpers.StringHelpers;
 
@@ -75,7 +76,7 @@ namespace HikariNoShisai.BLL.Services
 
             return parts[0] switch
             {
-                TelegramCommands.Statistics => StatisticsCommand(userId, message, language),
+                TelegramCommands.Statistics => StatisticsCommand(userId, parts, language),
                 TelegramCommands.ShowAll => ShowAllCommand(),
                 TelegramCommands.Settings => SettingsCommand(userId, message, language),
                 TelegramCommands.Toggle when parts.Length == 3 => ToggleCommand(userId, parts, language),
@@ -83,9 +84,45 @@ namespace HikariNoShisai.BLL.Services
             };
         }
 
-        private async Task<TelegramHtmlMessage> StatisticsCommand(long userId, string message, string language)
+        private async Task<TelegramHtmlMessage> StatisticsCommand(long userId, string[] parts, string language)
         {
-            var imageByte = await _agentStatusLogService.GetGridStatistics(Guid.Empty);
+            var days = 1;
+            if (parts.Length > 1)
+            {
+                if (!int.TryParse(parts[1], out days) || days < 1)
+                    return new TelegramHtmlMessage { HtmlContent = GetMessageFromTemplate(MessageTemplate.InvalidFormat, language) };
+            }
+            var endDate = DateTimeOffset.UtcNow;
+            var startDate = endDate.AddDays(-days);
+            var statistics = await _agentStatusLogService.GetGridStatistics(startDate, endDate);
+
+            Plot plot = new();
+            List<PieSlice> slices =
+            [
+                new PieSlice() { 
+                    Value = statistics.GridAvailableCount,
+                    FillColor = Colors.Green,
+                    Label = $"{statistics.GridAvailableCount:0.0}%",
+                    LabelFontSize = 20,
+                    LabelBold = true,
+                    LabelFontColor = Colors.Black.WithAlpha(.5)
+                },
+                new PieSlice() {
+                    Value = statistics.GridUnavailableCount,
+                    FillColor = Colors.Red,
+                    Label = $"{statistics.GridUnavailableCount:0.0}%",
+                    LabelFontSize = 20,
+                    LabelBold = true,
+                    LabelFontColor = Colors.Black.WithAlpha(.5)
+                }
+            ];
+
+            
+            var pie = plot.Add.Pie(slices);
+            plot.Axes.Frameless();
+            plot.HideGrid();
+
+            var imageByte = plot.GetImageBytes(512, 512, ImageFormat.Png);
             if (imageByte is null)
                 return new TelegramHtmlMessage { HtmlContent = GetMessageFromTemplate(MessageTemplate.InvalidFormat, language) };
 
