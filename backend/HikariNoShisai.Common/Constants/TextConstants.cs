@@ -18,6 +18,7 @@
             ShortcutHeader,
             ShortcutAddHeader,
             ShortcutRemoveHeader,
+            StatusLogChartTitle,
 
             ButtonCancel,
             ButtonNotifications,
@@ -49,6 +50,7 @@
             { MessageTemplate.ShortcutHeader, "Quick Access editing" },
             { MessageTemplate.ShortcutAddHeader, "Send terminal id with shortcut name or Cancel" },
             { MessageTemplate.ShortcutRemoveHeader, "Select shortcut to remove or Cancel" },
+            { MessageTemplate.StatusLogChartTitle, "Grid Availability Statistics" },
 
             { MessageTemplate.ButtonCancel, "Cancel"  },
             { MessageTemplate.ButtonNotifications, "Notifications" },

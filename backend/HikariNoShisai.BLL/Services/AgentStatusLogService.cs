@@ -5,7 +5,7 @@ using HikariNoShisai.Common.Helpers;
 using HikariNoShisai.Common.Interfaces;
 using HikariNoShisai.Common.Models;
 using HikariNoShisai.DAL;
-using Microsoft.EntityFrameworkCore;
+using static HikariNoShisai.Common.Constants.TextConstants;
 
 namespace HikariNoShisai.BLL.Services
 {
@@ -39,27 +39,23 @@ namespace HikariNoShisai.BLL.Services
                 endDate = DateTimeOffset.UtcNow;
             }
 
-            return new StatusLogChart() { Title = "Test" };
+            return new StatusLogChart() { Title = MessageTemplate.StatusLogChartTitle };
 
         }
 
         private async Task EmitGridNotification(AgentStatusLogRequest statusLog, DateTimeOffset dateNow)
         {
-            var lastAgentStatus = _context.AgentStatusLogs.OrderByDescending(x => x.CreatedAt).FirstOrDefault();
+            var lastAgentStatus = _context.AgentStatusLogs.OrderByDescending(x => x.CreatedAt).FirstOrDefault(x => x.AgentId == statusLog.AgentId);
             if (lastAgentStatus is not null && lastAgentStatus.IsGridAvailable != statusLog.IsGridAvailable)
             {
-                var agent = await _context.Agents.FirstOrDefaultAsync(x => x.Id == statusLog.AgentId);
-                if (agent is not null)
+                var offset = await _settingsService.GetTimezoneOffset();
+                var gridStatusNotification = new TelegramNotification
                 {
-                    var offset = await _settingsService.GetTimezoneOffset();
-                    var gridStatusNotification = new TelegramNotification
-                    {
-                        Template = statusLog.IsGridAvailable ? TextConstants.MessageTemplate.GridOnline : TextConstants.MessageTemplate.GridOffline,
-                        Values = [dateNow.ToOffset(offset).ToString(), StringHelpers.FormatDuration(dateNow - lastAgentStatus.CreatedAt)],
-                        IsVerbose = false
-                    };
-                    _messageQueue.Send(MessageTopics.TelegramNotification, gridStatusNotification);
-                }
+                    Template = statusLog.IsGridAvailable ? TextConstants.MessageTemplate.GridOnline : TextConstants.MessageTemplate.GridOffline,
+                    Values = [dateNow.ToOffset(offset).ToString(), StringHelpers.FormatDuration(dateNow - lastAgentStatus.CreatedAt)],
+                    IsVerbose = false
+                };
+                _messageQueue.Send(MessageTopics.TelegramNotification, gridStatusNotification);
             }
         }
     }
