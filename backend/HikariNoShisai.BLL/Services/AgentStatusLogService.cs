@@ -5,6 +5,7 @@ using HikariNoShisai.Common.Helpers;
 using HikariNoShisai.Common.Interfaces;
 using HikariNoShisai.Common.Models;
 using HikariNoShisai.DAL;
+using Microsoft.EntityFrameworkCore;
 using static HikariNoShisai.Common.Constants.TextConstants;
 
 namespace HikariNoShisai.BLL.Services
@@ -34,18 +35,55 @@ namespace HikariNoShisai.BLL.Services
 
         public async Task<StatusLogChart> GetGridStatistics(DateTimeOffset startDate, DateTimeOffset endDate = default, Guid agentId = default)
         {
+            var chart = new StatusLogChart() { Title = MessageTemplate.StatusLogChartTitle };
+            var isAnyAgentIdFilter = agentId == default;
             if (endDate == default)
             {
                 endDate = DateTimeOffset.UtcNow;
             }
 
-            return new StatusLogChart() { Title = MessageTemplate.StatusLogChartTitle };
+            var previousLog = await _context.AgentStatusLogs
+                .Where(x => x.CreatedAt < startDate && (isAnyAgentIdFilter || x.AgentId == agentId))
+                .OrderByDescending(x => x.CreatedAt)
+                .FirstOrDefaultAsync();
+            var logs = await _context.AgentStatusLogs
+                .Where(x => x.CreatedAt >= startDate && x.CreatedAt <= endDate && (isAnyAgentIdFilter || x.AgentId == agentId))
+                .OrderBy(x => x.CreatedAt)
+                .ToListAsync();
 
+            if (logs.Count == 0)
+            {
+                chart.GridAvailableCount = previousLog?.IsGridAvailable == true ? 100 : 0;
+                return chart;
+            }
+
+            var totalDuration = (endDate - (previousLog is null ? logs[0].CreatedAt: startDate)).TotalSeconds;
+            var availableDuration = 0.0;
+
+            previousLog?.CreatedAt = startDate;
+
+            foreach (var log in logs)
+            {
+                if (previousLog is not null && previousLog.IsGridAvailable)
+                {
+                    availableDuration += (log.CreatedAt - previousLog.CreatedAt).TotalSeconds;
+                }
+                previousLog = log;
+            }
+
+            if (previousLog?.IsGridAvailable == true)
+            {
+                availableDuration += (endDate - previousLog.CreatedAt).TotalSeconds;
+            }
+
+            chart.GridAvailableCount = Math.Round(availableDuration / totalDuration * 100, 2);
+
+            return chart;
         }
 
         private async Task EmitGridNotification(AgentStatusLogRequest statusLog, DateTimeOffset dateNow)
         {
-            var lastAgentStatus = _context.AgentStatusLogs.OrderByDescending(x => x.CreatedAt).FirstOrDefault(x => x.AgentId == statusLog.AgentId);
+            var lastAgentStatus = await _context.AgentStatusLogs.OrderByDescending(x => x.CreatedAt).FirstOrDefaultAsync(x => x.AgentId == statusLog.AgentId);
             if (lastAgentStatus is not null && lastAgentStatus.IsGridAvailable != statusLog.IsGridAvailable)
             {
                 var offset = await _settingsService.GetTimezoneOffset();

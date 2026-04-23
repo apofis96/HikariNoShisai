@@ -277,8 +277,50 @@ namespace HikariNoShisai.BLL.Tests
 
             Assert.NotNull(gridStatistics);
             Assert.Equal(MessageTemplate.StatusLogChartTitle, gridStatistics.Title);
-            Assert.Equal(Math.Round(66.66666666666666, 2), Math.Round(gridStatistics.GridAvailableCount, 2));
-            Assert.Equal(Math.Round(33.33333333333333, 2), Math.Round(gridStatistics.GridUnavailableCount, 2));
+            Assert.Equal(66.67, gridStatistics.GridAvailableCount);
+            Assert.Equal(33.33, gridStatistics.GridUnavailableCount);
+        }
+        [Fact]
+        public async Task GetGridStatistics_WhenMultipleDataForPeriodWithPreviousAgentNotMatch_ReturnsChart()
+        {
+            var context = CreateContext();
+            var mockMessageQueue = new Mock<IMessageQueue>();
+            var mockSettingsService = new Mock<ISettingsService>();
+            var service = new AgentStatusLogService(context, mockMessageQueue.Object, mockSettingsService.Object);
+            var utcNow = DateTimeOffset.UtcNow;
+            var agentId = Guid.NewGuid();
+            context.AgentStatusLogs.Add(new AgentStatusLog
+            {
+                AgentId = Guid.NewGuid(),
+                IsGridAvailable = true,
+                GridVoltage = 220,
+                BatteryVoltage = 12,
+                CreatedAt = utcNow.AddDays(-5)
+            });
+            context.AgentStatusLogs.Add(new AgentStatusLog
+            {
+                AgentId = agentId,
+                IsGridAvailable = false,
+                GridVoltage = 220,
+                BatteryVoltage = 12,
+                CreatedAt = utcNow.AddHours(-16)
+            });
+            context.AgentStatusLogs.Add(new AgentStatusLog
+            {
+                AgentId = agentId,
+                IsGridAvailable = true,
+                GridVoltage = 220,
+                BatteryVoltage = 12,
+                CreatedAt = utcNow.AddHours(-8)
+            });
+            context.SaveChanges();
+
+            var gridStatistics = await service.GetGridStatistics(utcNow.AddDays(-1), agentId: agentId);
+
+            Assert.NotNull(gridStatistics);
+            Assert.Equal(MessageTemplate.StatusLogChartTitle, gridStatistics.Title);
+            Assert.Equal(50, gridStatistics.GridAvailableCount);
+            Assert.Equal(50, gridStatistics.GridUnavailableCount);
         }
         #endregion
     }
