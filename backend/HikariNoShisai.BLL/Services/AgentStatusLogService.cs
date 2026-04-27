@@ -6,7 +6,6 @@ using HikariNoShisai.Common.Interfaces;
 using HikariNoShisai.Common.Models;
 using HikariNoShisai.DAL;
 using Microsoft.EntityFrameworkCore;
-using static HikariNoShisai.Common.Constants.TextConstants;
 
 namespace HikariNoShisai.BLL.Services
 {
@@ -33,34 +32,18 @@ namespace HikariNoShisai.BLL.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task<StatusLogChart> GetGridStatistics(DateTimeOffset startDate, DateTimeOffset endDate = default, Guid agentId = default)
+        private async Task<StatusLogChart> GetGridStatistics(List<AgentStatusLog> logs, double totalDuration, DateTimeOffset endDate)
         {
-            var chart = new StatusLogChart() { Title = MessageTemplate.StatusLogChartTitle };
-            var isAnyAgentIdFilter = agentId == default;
-            if (endDate == default)
-            {
-                endDate = DateTimeOffset.UtcNow;
-            }
-
-            var previousLog = await _context.AgentStatusLogs
-                .Where(x => x.CreatedAt < startDate && (isAnyAgentIdFilter || x.AgentId == agentId))
-                .OrderByDescending(x => x.CreatedAt)
-                .FirstOrDefaultAsync();
-            var logs = await _context.AgentStatusLogs
-                .Where(x => x.CreatedAt >= startDate && x.CreatedAt <= endDate && (isAnyAgentIdFilter || x.AgentId == agentId))
-                .OrderBy(x => x.CreatedAt)
-                .ToListAsync();
+            var chart = new StatusLogChart() { };
 
             if (logs.Count == 0)
             {
-                chart.GridAvailableCount = previousLog?.IsGridAvailable == true ? 100 : 0;
+                chart.GridAvailableCount = 0;
                 return chart;
             }
 
-            var totalDuration = (endDate - (previousLog is null ? logs[0].CreatedAt: startDate)).TotalSeconds;
             var availableDuration = 0.0;
-
-            previousLog?.CreatedAt = startDate;
+            AgentStatusLog previousLog = null!;
 
             foreach (var log in logs)
             {
@@ -79,6 +62,75 @@ namespace HikariNoShisai.BLL.Services
             chart.GridAvailableCount = Math.Round(availableDuration / totalDuration * 100, 2);
 
             return chart;
+        }
+
+        public async Task<StatusLogChart> GetDailyGridStatistics(DateTimeOffset endDate, Guid agentId = default)
+        {
+            var startDate = endDate.AddDays(-1);
+            var isAnyAgentIdFilter = agentId == default;
+            var totalDuration = 0.0;
+
+            var previousLog = await _context.AgentStatusLogs
+                .Where(x => x.CreatedAt < startDate && (isAnyAgentIdFilter || x.AgentId == agentId))
+                .OrderByDescending(x => x.CreatedAt)
+                .FirstOrDefaultAsync();
+            var logs = await _context.AgentStatusLogs
+                .Where(x => x.CreatedAt >= startDate && x.CreatedAt <= endDate && (isAnyAgentIdFilter || x.AgentId == agentId))
+                .OrderBy(x => x.CreatedAt)
+                .ToListAsync();
+            List<AgentStatusLog> allLogs = [];
+            if (previousLog is not null)
+            {
+                previousLog.CreatedAt = startDate;
+                allLogs.Add(previousLog);
+            }
+            allLogs.AddRange(logs);
+
+            if (allLogs.Count != 0)
+            {
+                totalDuration = (endDate - allLogs[0].CreatedAt).TotalSeconds;
+            }
+
+            return await GetGridStatistics(allLogs, totalDuration, endDate);
+        }
+
+        public async Task<List<StatusLogChart>> GetMultipleDailyGridStatistics(DateTimeOffset endDate, int days = 10, Guid agentId = default)
+        {
+            var startDate = endDate.AddDays(-days);
+            var isAnyAgentIdFilter = agentId == default;
+            var previousLog = await _context.AgentStatusLogs
+                .Where(x => x.CreatedAt < startDate && (isAnyAgentIdFilter || x.AgentId == agentId))
+                .OrderByDescending(x => x.CreatedAt)
+                .FirstOrDefaultAsync();
+            var logs = await _context.AgentStatusLogs
+                .Where(x => x.CreatedAt >= startDate && x.CreatedAt <= endDate && (isAnyAgentIdFilter || x.AgentId == agentId))
+                .OrderBy(x => x.CreatedAt)
+                .ToListAsync();
+            List<AgentStatusLog> allLogs = [];
+            if (previousLog is not null)
+            {
+                previousLog.CreatedAt = startDate;
+                allLogs.Add(previousLog);
+            }
+            allLogs.AddRange(logs);
+
+            var result = new List<StatusLogChart>();
+
+            for (var i = 0; i < days; i++)
+            {
+                var dayStart = startDate.AddDays(i);
+                var dayEnd = dayStart.AddDays(1);
+                var dailyLogs = allLogs.Where(x => x.CreatedAt >= dayStart && x.CreatedAt < dayEnd).ToList();
+                if (dailyLogs.Count == 0)
+                    continue;
+
+                var totalDuration = (dayEnd - dayStart).TotalSeconds;
+                var chart = await GetGridStatistics(dailyLogs, totalDuration, dayEnd);
+                chart.Title = dayStart.ToString("yyyy-MM-dd");
+                result.Add(chart);
+            }
+
+            return result;
         }
 
         private async Task EmitGridNotification(AgentStatusLogRequest statusLog, DateTimeOffset dateNow)

@@ -6,6 +6,7 @@ namespace HikariNoShisai.Common.Interfaces
     public interface IAgentStatusLogService
     {
         Task Create(AgentStatusLogRequest statusLog);
-        Task<StatusLogChart> GetGridStatistics(DateTimeOffset startDate, DateTimeOffset endDate = default, Guid agentId = default);
+        Task<StatusLogChart> GetDailyGridStatistics(DateTimeOffset endDate, Guid agentId = default);
+        Task<List<StatusLogChart>> GetMultipleDailyGridStatistics(DateTimeOffset endDate, int days = 10, Guid agentId = default);
     }
 }

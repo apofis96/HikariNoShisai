@@ -131,25 +131,24 @@ namespace HikariNoShisai.BLL.Tests
             mockMessageQueue.Verify(x => x.Send(It.IsAny<string>(), It.IsAny<object>()), Times.Once);
         }
         #endregion
-        #region GetGridStatistics
+        #region GetDailyGridStatistics
         [Fact]
-        public async Task GetGridStatistics_WhenNoData_ReturnsEmptyChart()
+        public async Task GetDailyGridStatistics_WhenNoData_ReturnsEmptyChart()
         {
             var context = CreateContext();
             var mockMessageQueue = new Mock<IMessageQueue>();
             var mockSettingsService = new Mock<ISettingsService>();
             var service = new AgentStatusLogService(context, mockMessageQueue.Object, mockSettingsService.Object);
 
-            var gridStatistics = await service.GetGridStatistics(DateTimeOffset.UtcNow);
+            var gridStatistics = await service.GetDailyGridStatistics(DateTimeOffset.UtcNow);
 
             Assert.NotNull(gridStatistics);
-            Assert.Equal(MessageTemplate.StatusLogChartTitle, gridStatistics.Title);
             Assert.Equal(0.0, gridStatistics.GridAvailableCount);
             Assert.Equal(100.0, gridStatistics.GridUnavailableCount);
         }
 
         [Fact]
-        public async Task GetGridStatistics_WhenNoDataForPeriodButAvailable_ReturnsAvailableChart()
+        public async Task GetDailyGridStatistics_WhenNoDataForPeriodButAvailable_ReturnsAvailableChart()
         {
             var context = CreateContext();
             var mockMessageQueue = new Mock<IMessageQueue>();
@@ -165,16 +164,15 @@ namespace HikariNoShisai.BLL.Tests
             });
             context.SaveChanges();
 
-            var gridStatistics = await service.GetGridStatistics(DateTimeOffset.UtcNow.AddDays(-1));
+            var gridStatistics = await service.GetDailyGridStatistics(DateTimeOffset.UtcNow.AddDays(-1));
 
             Assert.NotNull(gridStatistics);
-            Assert.Equal(MessageTemplate.StatusLogChartTitle, gridStatistics.Title);
             Assert.Equal(100.0, gridStatistics.GridAvailableCount);
             Assert.Equal(0.0, gridStatistics.GridUnavailableCount);
         }
 
         [Fact]
-        public async Task GetGridStatistics_WhenNoDataForPeriodButNotAvailable_ReturnsNotAvailableChart()
+        public async Task GetDailyGridStatistics_WhenNoDataForPeriodButNotAvailable_ReturnsNotAvailableChart()
         {
             var context = CreateContext();
             var mockMessageQueue = new Mock<IMessageQueue>();
@@ -198,16 +196,15 @@ namespace HikariNoShisai.BLL.Tests
             });
             context.SaveChanges();
 
-            var gridStatistics = await service.GetGridStatistics(DateTimeOffset.UtcNow.AddDays(-1));
+            var gridStatistics = await service.GetDailyGridStatistics(DateTimeOffset.UtcNow.AddDays(-1));
 
             Assert.NotNull(gridStatistics);
-            Assert.Equal(MessageTemplate.StatusLogChartTitle, gridStatistics.Title);
             Assert.Equal(0.0, gridStatistics.GridAvailableCount);
             Assert.Equal(100.0, gridStatistics.GridUnavailableCount);
         }
 
         [Fact]
-        public async Task GetGridStatistics_WhenSingleDataForPeriodWithPrevious_ReturnsChart()
+        public async Task GetDailyGridStatistics_WhenSingleDataForPeriodWithPrevious_ReturnsChart()
         {
             var context = CreateContext();
             var mockMessageQueue = new Mock<IMessageQueue>();
@@ -232,15 +229,14 @@ namespace HikariNoShisai.BLL.Tests
             });
             context.SaveChanges();
 
-            var gridStatistics = await service.GetGridStatistics(utcNow.AddDays(-1));
+            var gridStatistics = await service.GetDailyGridStatistics(utcNow);
 
             Assert.NotNull(gridStatistics);
-            Assert.Equal(MessageTemplate.StatusLogChartTitle, gridStatistics.Title);
             Assert.Equal(50.0, gridStatistics.GridAvailableCount);
             Assert.Equal(50.0, gridStatistics.GridUnavailableCount);
         }
         [Fact]
-        public async Task GetGridStatistics_WhenMultipleDataForPeriodWithPrevious_ReturnsChart()
+        public async Task GetDailyGridStatistics_WhenMultipleDataForPeriodWithPrevious_ReturnsChart()
         {
             var context = CreateContext();
             var mockMessageQueue = new Mock<IMessageQueue>();
@@ -273,15 +269,14 @@ namespace HikariNoShisai.BLL.Tests
             });
             context.SaveChanges();
 
-            var gridStatistics = await service.GetGridStatistics(utcNow.AddDays(-1));
+            var gridStatistics = await service.GetDailyGridStatistics(utcNow);
 
             Assert.NotNull(gridStatistics);
-            Assert.Equal(MessageTemplate.StatusLogChartTitle, gridStatistics.Title);
             Assert.Equal(66.67, gridStatistics.GridAvailableCount);
             Assert.Equal(33.33, gridStatistics.GridUnavailableCount);
         }
         [Fact]
-        public async Task GetGridStatistics_WhenMultipleDataForPeriodWithPreviousAgentNotMatch_ReturnsChart()
+        public async Task GetDailyGridStatistics_WhenMultipleDataForPeriodWithPreviousAgentNotMatch_ReturnsChart()
         {
             var context = CreateContext();
             var mockMessageQueue = new Mock<IMessageQueue>();
@@ -315,10 +310,9 @@ namespace HikariNoShisai.BLL.Tests
             });
             context.SaveChanges();
 
-            var gridStatistics = await service.GetGridStatistics(utcNow.AddDays(-1), agentId: agentId);
+            var gridStatistics = await service.GetDailyGridStatistics(utcNow, agentId: agentId);
 
             Assert.NotNull(gridStatistics);
-            Assert.Equal(MessageTemplate.StatusLogChartTitle, gridStatistics.Title);
             Assert.Equal(50, gridStatistics.GridAvailableCount);
             Assert.Equal(50, gridStatistics.GridUnavailableCount);
         }

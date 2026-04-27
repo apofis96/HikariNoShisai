@@ -93,8 +93,9 @@ namespace HikariNoShisai.BLL.Services
                     return new TelegramHtmlMessage { HtmlContent = GetMessageFromTemplate(MessageTemplate.InvalidFormat, language) };
             }
             var endDate = DateTimeOffset.UtcNow;
+            //replace
             var startDate = endDate.AddDays(-days);
-            var statistics = await _agentStatusLogService.GetGridStatistics(startDate, endDate);
+            var statistics = await _agentStatusLogService.GetDailyGridStatistics(endDate);
 
             Plot plot = new();
             List<PieSlice> slices =
