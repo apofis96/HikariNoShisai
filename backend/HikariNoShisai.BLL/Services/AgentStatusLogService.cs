@@ -94,9 +94,8 @@ namespace HikariNoShisai.BLL.Services
             return await GetGridStatistics(allLogs, totalDuration, endDate);
         }
 
-        public async Task<List<StatusLogChart>> GetMultipleDailyGridStatistics(DateTimeOffset endDate, int days = 10, Guid agentId = default)
+        public async Task<List<StatusLogChart>> GetMultipleDailyGridStatistics(DateTimeOffset endDate, DateTimeOffset startDate, Guid agentId = default)
         {
-            var startDate = endDate.AddDays(-days);
             var isAnyAgentIdFilter = agentId == default;
             var previousLog = await _context.AgentStatusLogs
                 .Where(x => x.CreatedAt < startDate && (isAnyAgentIdFilter || x.AgentId == agentId))
@@ -115,6 +114,7 @@ namespace HikariNoShisai.BLL.Services
             allLogs.AddRange(logs);
 
             var result = new List<StatusLogChart>();
+            var days = (endDate.Date - startDate.Date).Days;
 
             for (var i = 0; i < days; i++)
             {

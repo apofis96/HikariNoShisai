@@ -4,6 +4,8 @@ using HikariNoShisai.Common.Interfaces;
 using HikariNoShisai.Common.Models;
 using Microsoft.Extensions.Caching.Memory;
 using ScottPlot;
+using ScottPlot.Plottables;
+using System.Globalization;
 using static HikariNoShisai.Common.Constants.TextConstants;
 using static HikariNoShisai.Common.Helpers.StringHelpers;
 
@@ -86,41 +88,81 @@ namespace HikariNoShisai.BLL.Services
 
         private async Task<TelegramHtmlMessage> StatisticsCommand(long userId, string[] parts, string language)
         {
-            var days = 1;
-            if (parts.Length > 1)
+            var isMultiple = false;
+            var endDate = DateTimeOffset.MinValue;
+            var startDate = DateTimeOffset.MinValue;
+            if (parts.Length != 0)
             {
-                if (!int.TryParse(parts[1], out days) || days < 1)
-                    return new TelegramHtmlMessage { HtmlContent = GetMessageFromTemplate(MessageTemplate.InvalidFormat, language) };
+                foreach (var part in parts)
+                {
+                    DateTimeOffset.TryParse(part, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out endDate);
+                }
+                if (endDate == DateTimeOffset.MinValue)
+                    endDate = DateTimeOffset.UtcNow;
+
+                foreach (var part in parts)
+                {
+                    (startDate, isMultiple) = part.ToLowerInvariant() switch
+                    {
+                        "week" => (endDate.AddDays(-7), true),
+                        "month" => (endDate.AddMonths(-1), true),
+                        _ => (endDate.AddDays(-1), false)
+                    };
+                }
             }
-            var endDate = DateTimeOffset.UtcNow;
-            //replace
-            var startDate = endDate.AddDays(-days);
-            var statistics = await _agentStatusLogService.GetDailyGridStatistics(endDate);
+
+            if (endDate == DateTimeOffset.MinValue)
+                endDate = DateTimeOffset.UtcNow;
+            if (startDate == DateTimeOffset.MinValue)
+                startDate = endDate.AddDays(-1);
 
             Plot plot = new();
-            List<PieSlice> slices =
-            [
-                new PieSlice() { 
-                    Value = statistics.GridAvailableCount,
-                    FillColor = Colors.Green,
-                    Label = $"{statistics.GridAvailableCount:0.0}%",
-                    LabelFontSize = 20,
-                    LabelBold = true,
-                    LabelFontColor = Colors.Black.WithAlpha(.5)
-                },
-                new PieSlice() {
-                    Value = statistics.GridUnavailableCount,
-                    FillColor = Colors.Red,
-                    Label = $"{statistics.GridUnavailableCount:0.0}%",
-                    LabelFontSize = 20,
-                    LabelBold = true,
-                    LabelFontColor = Colors.Black.WithAlpha(.5)
-                }
-            ];
 
-            
-            var pie = plot.Add.Pie(slices);
-            plot.Axes.Frameless();
+            if (isMultiple)
+            {
+                var statistics = await _agentStatusLogService.GetMultipleDailyGridStatistics(endDate, startDate);
+
+                var bars = new List<Bar> ();
+                var ticks = new List<Tick>();
+
+                for (int i = 0; i < statistics.Count; i++)
+                {
+                    bars.Add(new Bar() { Position = i + 1, ValueBase = 0, Value = statistics[i].GridAvailableCount, FillColor = Colors.Green });
+                    bars.Add(new Bar() { Position = i + 1, ValueBase = statistics[i].GridAvailableCount, Value = statistics[i].GridUnavailableCount, FillColor = Colors.Red });
+
+                    ticks.Add(new Tick(i + 1, statistics[i].Title));
+                }
+                plot.Add.Bars(bars);
+                plot.Axes.Bottom.TickGenerator = new ScottPlot.TickGenerators.NumericManual([.. ticks]);
+                plot.Axes.Bottom.MajorTickStyle.Length = 0;
+                plot.Axes.Margins(bottom: 0);
+            }
+            else
+            {
+                var statistics = await _agentStatusLogService.GetDailyGridStatistics(endDate);
+                List<PieSlice> slices =
+                [
+                    new PieSlice()
+                    {
+                        Value = statistics.GridAvailableCount,
+                        FillColor = Colors.Green,
+                        Label = $"{statistics.GridAvailableCount:0.0}%",
+                        LabelFontSize = 20,
+                        LabelBold = true,
+                        LabelFontColor = Colors.Black.WithAlpha(.5)
+                    },
+                    new PieSlice() {
+                        Value = statistics.GridUnavailableCount,
+                        FillColor = Colors.Red,
+                        Label = $"{statistics.GridUnavailableCount:0.0}%",
+                        LabelFontSize = 20,
+                        LabelBold = true,
+                        LabelFontColor = Colors.Black.WithAlpha(.5)
+                    }
+                ];
+                plot.Add.Pie(slices);
+                plot.Axes.Frameless();
+            }
             plot.HideGrid();
 
             var imageByte = plot.GetImageBytes(512, 512, ImageFormat.Png);
@@ -309,7 +351,7 @@ namespace HikariNoShisai.BLL.Services
             var agentId = await _agentTerminal.GetAgentIdByTerminalId(terminalId);
             if (agentId == Guid.Empty)
                 return await FormatResponse(userId, language, MessageTemplate.InvalidFormat);
-            
+
             var agentShortcut = new AgentShortcut
             {
                 AgentId = agentId,
