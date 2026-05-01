@@ -23,9 +23,9 @@
             return $"<{input}>";
         }
 
-        public static string GetStreamTag(int index)
+        public static string GetStreamImageTag(int index)
         {
-            return $"<c>stream:{index}</c>";
+            return $"<img src=\"stream://{index}\">";
         }
     }
 }

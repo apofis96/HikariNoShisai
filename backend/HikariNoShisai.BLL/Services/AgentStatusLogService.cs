@@ -105,13 +105,8 @@ namespace HikariNoShisai.BLL.Services
                 .Where(x => x.CreatedAt >= startDate && x.CreatedAt <= endDate && (isAnyAgentIdFilter || x.AgentId == agentId))
                 .OrderBy(x => x.CreatedAt)
                 .ToListAsync();
-            List<AgentStatusLog> allLogs = [];
-            if (previousLog is not null)
-            {
-                previousLog.CreatedAt = startDate;
-                allLogs.Add(previousLog);
-            }
-            allLogs.AddRange(logs);
+
+            previousLog?.CreatedAt = startDate;
 
             var result = new List<StatusLogChart>();
             var days = (endDate.Date - startDate.Date).Days;
@@ -120,7 +115,9 @@ namespace HikariNoShisai.BLL.Services
             {
                 var dayStart = startDate.AddDays(i);
                 var dayEnd = dayStart.AddDays(1);
-                var dailyLogs = allLogs.Where(x => x.CreatedAt >= dayStart && x.CreatedAt < dayEnd).ToList();
+                var dailyLogs = logs.Where(x => x.CreatedAt >= dayStart && x.CreatedAt < dayEnd).ToList();
+                if (previousLog is not null)
+                    dailyLogs.Insert(0, previousLog);
                 if (dailyLogs.Count == 0)
                     continue;
 
@@ -128,6 +125,9 @@ namespace HikariNoShisai.BLL.Services
                 var chart = await GetGridStatistics(dailyLogs, totalDuration, dayEnd);
                 chart.Title = dayStart.ToString("yyyy-MM-dd");
                 result.Add(chart);
+
+                previousLog = dailyLogs.Last();
+                previousLog?.CreatedAt = dayEnd;
             }
 
             return result;

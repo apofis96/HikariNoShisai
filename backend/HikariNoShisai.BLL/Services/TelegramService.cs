@@ -4,7 +4,6 @@ using HikariNoShisai.Common.Interfaces;
 using HikariNoShisai.Common.Models;
 using Microsoft.Extensions.Caching.Memory;
 using ScottPlot;
-using ScottPlot.Plottables;
 using System.Globalization;
 using static HikariNoShisai.Common.Constants.TextConstants;
 using static HikariNoShisai.Common.Helpers.StringHelpers;
@@ -128,42 +127,58 @@ namespace HikariNoShisai.BLL.Services
                 for (int i = 0; i < statistics.Count; i++)
                 {
                     bars.Add(new Bar() { Position = i + 1, ValueBase = 0, Value = statistics[i].GridAvailableCount, FillColor = Colors.Green });
-                    bars.Add(new Bar() { Position = i + 1, ValueBase = statistics[i].GridAvailableCount, Value = statistics[i].GridUnavailableCount, FillColor = Colors.Red });
+                    bars.Add(new Bar() { Position = i + 1, ValueBase = statistics[i].GridAvailableCount, Value = 100.00, FillColor = Colors.Red });
 
                     ticks.Add(new Tick(i + 1, statistics[i].Title));
                 }
                 plot.Add.Bars(bars);
                 plot.Axes.Bottom.TickGenerator = new ScottPlot.TickGenerators.NumericManual([.. ticks]);
-                plot.Axes.Bottom.MajorTickStyle.Length = 0;
-                plot.Axes.Margins(bottom: 0);
+                plot.Axes.Bottom.TickLabelStyle.Rotation = 45;
+                plot.Axes.Bottom.TickLabelStyle.Alignment = Alignment.MiddleLeft;
+                plot.Axes.Bottom.LockSize(60f);
+                plot.Axes.Right.LockSize(50f);
+                plot.Axes.Left.LockSize(35f);
+                plot.Axes.Top.LockSize(15f);
+                plot.Axes.Margins(0, 0);
+                plot.Grid.MajorLineWidth = 2;
+                plot.Grid.MajorLineColor = Colors.White.WithAlpha(.5);
+                plot.Grid.IsBeneathPlottables = false;
+                plot.Grid.XAxisStyle.IsVisible = false;
             }
             else
             {
                 var statistics = await _agentStatusLogService.GetDailyGridStatistics(endDate);
-                List<PieSlice> slices =
-                [
-                    new PieSlice()
+                List<PieSlice> slices = new ();
+
+                if (statistics.GridAvailableCount > 0.0)
+                {
+                    slices.Add(new PieSlice()
                     {
                         Value = statistics.GridAvailableCount,
                         FillColor = Colors.Green,
-                        Label = $"{statistics.GridAvailableCount:0.0}%",
+                        Label = $"{statistics.GridAvailableCount:0}%",
                         LabelFontSize = 20,
                         LabelBold = true,
                         LabelFontColor = Colors.Black.WithAlpha(.5)
-                    },
-                    new PieSlice() {
+                    });
+                }
+                if (statistics.GridUnavailableCount > 0.0)
+                {
+                    slices.Add(new PieSlice()
+                    {
                         Value = statistics.GridUnavailableCount,
                         FillColor = Colors.Red,
-                        Label = $"{statistics.GridUnavailableCount:0.0}%",
+                        Label = $"{statistics.GridUnavailableCount:0}%",
                         LabelFontSize = 20,
                         LabelBold = true,
                         LabelFontColor = Colors.Black.WithAlpha(.5)
-                    }
-                ];
+                    });
+                }
+
                 plot.Add.Pie(slices);
                 plot.Axes.Frameless();
+                plot.HideGrid();
             }
-            plot.HideGrid();
 
             var imageByte = plot.GetImageBytes(512, 512, ImageFormat.Png);
             if (imageByte is null)
@@ -171,7 +186,7 @@ namespace HikariNoShisai.BLL.Services
 
             return new TelegramHtmlMessage
             {
-                HtmlContent = GetStreamTag(0),
+                HtmlContent = GetStreamImageTag(0),
                 Streams = [new MemoryStream(imageByte)]
             };
         }
