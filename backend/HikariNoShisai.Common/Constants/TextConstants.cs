@@ -19,6 +19,9 @@
             ShortcutAddHeader,
             ShortcutRemoveHeader,
             StatusLogChartTitle,
+            StatisticsHeader,
+            StatisticsTypeHeader,
+            StatisticsTimeframeHeader,
 
             ButtonCancel,
             ButtonNotifications,
@@ -28,6 +31,11 @@
             ButtonShortcutAdd,
             ButtonShortcutRemove,
             ButtonShortcutPlaceholder,
+            ButtonStatisticsCumulative,
+            ButtonStatisticsTime,
+            ButtonStatisticsDay,
+            ButtonStatisticsWeek,
+            ButtonStatisticsMonth,
 
             ButtonEnglish,
             ButtonUkrainian,
@@ -51,6 +59,9 @@
             { MessageTemplate.ShortcutAddHeader, "Send terminal id with shortcut name or Cancel" },
             { MessageTemplate.ShortcutRemoveHeader, "Select shortcut to remove or Cancel" },
             { MessageTemplate.StatusLogChartTitle, "Grid Availability Statistics" },
+            { MessageTemplate.StatisticsHeader, "Select statistics type" },
+            { MessageTemplate.StatisticsTypeHeader, "Select statistics period" },
+            { MessageTemplate.StatisticsTimeframeHeader, "Type end date" },
 
             { MessageTemplate.ButtonCancel, "Cancel"  },
             { MessageTemplate.ButtonNotifications, "Notifications" },
@@ -62,6 +73,11 @@
             { MessageTemplate.ButtonShortcut, "Quick Access" },
             { MessageTemplate.ButtonShortcutAdd, "Add" },
             { MessageTemplate.ButtonShortcutRemove, "Remove" },
+            { MessageTemplate.ButtonStatisticsCumulative, "Cumulative" },
+            { MessageTemplate.ButtonStatisticsTime, "Time" },
+            { MessageTemplate.ButtonStatisticsDay, "Day" },
+            { MessageTemplate.ButtonStatisticsWeek, "Week" },
+            { MessageTemplate.ButtonStatisticsMonth, "Month" },
         };
 
         private static readonly Dictionary<MessageTemplate, string> _ukTemplates = new()
@@ -80,6 +96,9 @@
             { MessageTemplate.ShortcutHeader, "Редагування швидкого доступа" },
             { MessageTemplate.ShortcutAddHeader, "Надішліть id терміналу з ім'ям швидкого доступу або або Скасувати" },
             { MessageTemplate.ShortcutRemoveHeader, "Виберіть швидкий доступ для видалення або Скасувати" },
+            { MessageTemplate.StatisticsHeader, "Виберіть тип статистики" },
+            { MessageTemplate.StatisticsTypeHeader, "Виберіть період статистики" },
+            { MessageTemplate.StatisticsTimeframeHeader, "Введіть кінцеву дату" },
 
             { MessageTemplate.ButtonCancel, "Скасувати"  },
             { MessageTemplate.ButtonNotifications, "Сповіщення" },
@@ -88,6 +107,11 @@
             { MessageTemplate.ButtonShortcut, "Швидкий доступ" },
             { MessageTemplate.ButtonShortcutAdd, "Додати" },
             { MessageTemplate.ButtonShortcutRemove, "Видалити" },
+            { MessageTemplate.ButtonStatisticsCumulative, "Накопичувальна" },
+            { MessageTemplate.ButtonStatisticsTime, "За часом" },
+            { MessageTemplate.ButtonStatisticsDay, "День" },
+            { MessageTemplate.ButtonStatisticsWeek, "Тиждень" },
+            { MessageTemplate.ButtonStatisticsMonth, "Місяць" },
         };
 
         private static readonly Dictionary<MessageTemplate, string> _ruTemplates = new()
@@ -106,6 +130,9 @@
             { MessageTemplate.ShortcutHeader, "Редактирование быстрого доступа" },
             { MessageTemplate.ShortcutAddHeader, "Отправьте id терминала с именем быстрого доступа или Отмена" },
             { MessageTemplate.ShortcutRemoveHeader, "Выберите быстрый доступ для удаления или Отмена" },
+            { MessageTemplate.StatisticsHeader, "Выберите тип статистики" },
+            { MessageTemplate.StatisticsTypeHeader, "Выберите период статистики" },
+            { MessageTemplate.StatisticsTimeframeHeader, "Введите конечную дату" },
 
             { MessageTemplate.ButtonCancel, "Отмена"   },
             { MessageTemplate.ButtonNotifications, "Уведомления" },
@@ -114,6 +141,11 @@
             { MessageTemplate.ButtonShortcut, "Быстрый доступ" },
             { MessageTemplate.ButtonShortcutAdd, "Добавить" },
             { MessageTemplate.ButtonShortcutRemove, "Удалить" },
+            { MessageTemplate.ButtonStatisticsCumulative, "Накопительная" },
+            { MessageTemplate.ButtonStatisticsTime, "По времени" },
+            { MessageTemplate.ButtonStatisticsDay, "День" },
+            { MessageTemplate.ButtonStatisticsWeek, "Неделя" },
+            { MessageTemplate.ButtonStatisticsMonth, "Месяц" },
         };
 
         public static string GetMessageFromTemplate(MessageTemplate template, string languageCode)

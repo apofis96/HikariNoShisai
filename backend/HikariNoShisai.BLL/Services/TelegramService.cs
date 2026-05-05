@@ -43,7 +43,7 @@ namespace HikariNoShisai.BLL.Services
                     return response;
                 }
 
-                response.HtmlContent = await ParseDialog(cacheEntry.ChatStep, userId, message, userLanguage);
+                response.HtmlContent = await ParseDialog(cacheEntry.ChatStep, userId, message, userLanguage, cacheEntry.Data);
                 return response;
             }
             if (!String.IsNullOrEmpty(message) && Int32.TryParse(message.Split('.', 2)[0], out var index))
@@ -56,7 +56,7 @@ namespace HikariNoShisai.BLL.Services
             return response;
         }
 
-        private Task<string> ParseDialog(TelegramChatStep chatStep, long userId, string message, string language)
+        private Task<string> ParseDialog(TelegramChatStep chatStep, long userId, string message, string language, object? data)
         {
             return chatStep switch
             {
@@ -67,6 +67,9 @@ namespace HikariNoShisai.BLL.Services
                 TelegramChatStep.SettingsShortcut => ShortcutCommand(userId, message, language),
                 TelegramChatStep.SettingsShortcutAdd => ShortcutAddCommand(userId, message, language),
                 TelegramChatStep.SettingsShortcutRemove => ShortcutRemoveCommand(userId, message, language),
+                TelegramChatStep.Statistics => ParseStatisticsTypeCommand(userId, message, language),
+                TelegramChatStep.StatisticsType => ParseStatisticsTimeframeCommand(userId, message, language, data),
+                TelegramChatStep.StatisticsTimeframe => ParseStatisticsEndDateCommand(userId, message, language, data),
                 _ => Task.FromResult(GetMessageFromTemplate(MessageTemplate.UnknownCommand, language))
             };
         }
@@ -77,15 +80,64 @@ namespace HikariNoShisai.BLL.Services
 
             return parts[0] switch
             {
-                TelegramCommands.Statistics => StatisticsCommand(userId, parts, language),
+                TelegramCommands.Statistics => StatisticsCommand(userId, language),
                 TelegramCommands.ShowAll => ShowAllCommand(),
-                TelegramCommands.Settings => SettingsCommand(userId, message, language),
+                TelegramCommands.Settings => SettingsCommand(userId, language),
                 TelegramCommands.Toggle when parts.Length == 3 => ToggleCommand(userId, parts, language),
                 _ => Task.FromResult(new TelegramHtmlMessage { HtmlContent = GetMessageFromTemplate(MessageTemplate.UnknownCommand, language) })
             };
         }
+        #region Statistics Dialog
+        private async Task<TelegramHtmlMessage> StatisticsCommand(long userId, string language)
+        {
+            return new TelegramHtmlMessage
+            {
+                HtmlContent = await FormatResponse(
+                    userId,
+                    language,
+                    MessageTemplate.StatisticsHeader,
+                    [MessageTemplate.ButtonStatisticsCumulative, MessageTemplate.ButtonStatisticsTime, MessageTemplate.ButtonCancel],
+                    TelegramChatStep.Statistics
+                )
+            };
+        }
+        private Task<string> ParseStatisticsTypeCommand(long userId, string message, string language)
+        {
+            var command = GetTemplateFromMessage(message, language);
+            if (command != MessageTemplate.ButtonStatisticsCumulative && command != MessageTemplate.ButtonStatisticsTime)
+                return Task.FromResult(GetMessageFromTemplate(MessageTemplate.UnknownCommand, language));
 
-        private async Task<TelegramHtmlMessage> StatisticsCommand(long userId, string[] parts, string language)
+            return FormatResponse(
+                    userId,
+                    language,
+                    MessageTemplate.StatisticsTypeHeader,
+                    [MessageTemplate.ButtonStatisticsDay, MessageTemplate.ButtonStatisticsWeek, MessageTemplate.ButtonStatisticsMonth, MessageTemplate.ButtonCancel],
+                    TelegramChatStep.StatisticsType,
+                    data: command);
+        }
+        private Task<string> ParseStatisticsTimeframeCommand(long userId, string message, string language, object? data)
+        {
+            if (data is null)
+                return Task.FromResult(GetMessageFromTemplate(MessageTemplate.UnknownCommand, language));
+
+            var previousCommand = (MessageTemplate)data;
+            var command = GetTemplateFromMessage(message, language);
+
+            if (command != MessageTemplate.ButtonStatisticsDay && command != MessageTemplate.ButtonStatisticsWeek && command != MessageTemplate.ButtonStatisticsMonth)
+                return Task.FromResult(GetMessageFromTemplate(MessageTemplate.UnknownCommand, language));
+
+            var endDateToday = DateTimeOffset.UtcNow.ToString("yyyy-MM-dd");
+
+            return FormatResponse(
+                    userId,
+                    language,
+                    MessageTemplate.StatisticsTimeframeHeader,
+                    chatStep: TelegramChatStep.StatisticsTimeframe,
+                    data: (previousCommand, command),
+                    rawButtons: [endDateToday]);
+        }
+
+        private async Task<TelegramHtmlMessage> ParseStatisticsEndDateCommand(long userId, string message, string language, object? data)
         {
             var isMultiple = false;
             var endDate = DateTimeOffset.MinValue;
@@ -190,26 +242,13 @@ namespace HikariNoShisai.BLL.Services
                 Streams = [new MemoryStream(imageByte)]
             };
         }
+        #endregion
 
         private async Task<TelegramHtmlMessage> ToggleCommand(long userId, string[] parts, string language)
         {
             return new TelegramHtmlMessage
             {
                 HtmlContent = await CommandExecute(() => _agentTerminal.ToggleAgentTerminalStatus(Guid.Parse(parts[1]), Guid.Parse(parts[2])), language, userId)
-            };
-        }
-
-        private async Task<TelegramHtmlMessage> SettingsCommand(long userId, string message, string language)
-        {
-            return new TelegramHtmlMessage
-            {
-                HtmlContent = await FormatResponse(
-                    userId,
-                    language,
-                    MessageTemplate.SettingsHeader,
-                    [MessageTemplate.ButtonShortcut, MessageTemplate.ButtonNotifications, MessageTemplate.ButtonLanguage, MessageTemplate.ButtonOffset, MessageTemplate.ButtonCancel],
-                    TelegramChatStep.Settings
-                )
             };
         }
 
@@ -244,6 +283,19 @@ namespace HikariNoShisai.BLL.Services
         }
 
         #region Settings Dialog
+        private async Task<TelegramHtmlMessage> SettingsCommand(long userId, string language)
+        {
+            return new TelegramHtmlMessage
+            {
+                HtmlContent = await FormatResponse(
+                    userId,
+                    language,
+                    MessageTemplate.SettingsHeader,
+                    [MessageTemplate.ButtonShortcut, MessageTemplate.ButtonNotifications, MessageTemplate.ButtonLanguage, MessageTemplate.ButtonOffset, MessageTemplate.ButtonCancel],
+                    TelegramChatStep.Settings
+                )
+            };
+        }
         private Task<string> ParseSettingsCommand(long userId, string message, string language)
         {
             var command = GetTemplateFromMessage(message, language);
@@ -400,7 +452,14 @@ namespace HikariNoShisai.BLL.Services
             return await FormatResponse(userId, language, MessageTemplate.SuccessfulCommand, [MessageTemplate.ButtonShortcutPlaceholder], TelegramChatStep.None);
         }
 
-        private async Task<string> FormatResponse(long userId, string language, MessageTemplate template, MessageTemplate[]? buttons = null, TelegramChatStep? chatStep = null)
+        private async Task<string> FormatResponse(
+            long userId,
+            string language,
+            MessageTemplate template,
+            MessageTemplate[]? buttons = null,
+            TelegramChatStep? chatStep = null,
+            object? data = null,
+            string[]? rawButtons = null)
         {
             if (chatStep.HasValue)
             {
@@ -410,7 +469,7 @@ namespace HikariNoShisai.BLL.Services
                 }
                 else
                 {
-                    SetCache(userId, chatStep.Value);
+                    SetCache(userId, chatStep.Value, data);
                 }
             }
             buttons ??= [];
@@ -426,11 +485,16 @@ namespace HikariNoShisai.BLL.Services
             }
 
             formattedButtons = [.. formattedButtons, .. GetMessageFromTemplate(buttons, language)];
+            
+            if (rawButtons is not null)
+            {
+                formattedButtons = [.. formattedButtons, .. rawButtons];
+            }
 
             return ButtonFormatter.AddButtons(GetMessageFromTemplate(template, language), formattedButtons);
         }
         private string GetCacheKey(long userId) => $"{CacheKeyPrefix}{userId}";
-        private void SetCache(long userId, TelegramChatStep chatStep) => _memoryCache.Set(GetCacheKey(userId), new TelegramCache { ChatStep = chatStep }, Expiration);
+        private void SetCache(long userId, TelegramChatStep chatStep, object? data = null) => _memoryCache.Set(GetCacheKey(userId), new TelegramCache { ChatStep = chatStep, Data = data }, Expiration);
         private void ClearCache(long userId) => _memoryCache.Remove($"{CacheKeyPrefix}{userId}");
     }
 }

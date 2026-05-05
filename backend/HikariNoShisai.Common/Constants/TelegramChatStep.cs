@@ -10,5 +10,8 @@
         SettingsShortcut,
         SettingsShortcutAdd,
         SettingsShortcutRemove,
+        Statistics,
+        StatisticsType,
+        StatisticsTimeframe,
     }
 }
