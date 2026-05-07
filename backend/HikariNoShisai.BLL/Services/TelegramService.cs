@@ -33,44 +33,35 @@ namespace HikariNoShisai.BLL.Services
             if (message.StartsWith('/'))
                 return await ParseCommand(userId, message, userLanguage);
 
-            var response = new TelegramHtmlMessage();
             if (_memoryCache.TryGetValue<TelegramCache>(GetCacheKey(userId), out var cacheEntry) && cacheEntry is not null)
             {
                 var command = GetTemplateFromMessage(message, userLanguage);
                 if (command == MessageTemplate.ButtonCancel)
-                {
-                    response.HtmlContent = await FormatResponse(userId, userLanguage, MessageTemplate.SuccessfulCommand, [MessageTemplate.ButtonShortcutPlaceholder], TelegramChatStep.None);
-                    return response;
-                }
+                    return new (await FormatResponse(userId, userLanguage, MessageTemplate.SuccessfulCommand, [MessageTemplate.ButtonShortcutPlaceholder], TelegramChatStep.None));
 
-                response.HtmlContent = await ParseDialog(cacheEntry.ChatStep, userId, message, userLanguage, cacheEntry.Data);
-                return response;
+                return await ParseDialog(cacheEntry.ChatStep, userId, message, userLanguage, cacheEntry.Data);
             }
             if (!String.IsNullOrEmpty(message) && Int32.TryParse(message.Split('.', 2)[0], out var index))
-            {
-                response.HtmlContent = await ParseToggleIndex(userId, index, userLanguage);
-                return response;
-            }
+                return new (await ParseToggleIndex(userId, index, userLanguage));
 
-            response.HtmlContent = GetMessageFromTemplate(MessageTemplate.InvalidFormat, userLanguage);
-            return response;
+            return new (GetMessageFromTemplate(MessageTemplate.InvalidFormat, userLanguage));
         }
 
-        private Task<string> ParseDialog(TelegramChatStep chatStep, long userId, string message, string language, object? data)
+        private async Task<TelegramHtmlMessage> ParseDialog(TelegramChatStep chatStep, long userId, string message, string language, object? data)
         {
             return chatStep switch
             {
-                TelegramChatStep.Settings => ParseSettingsCommand(userId, message, language),
-                TelegramChatStep.SettingsNotifications => SetSettingsNotificationsCommand(userId, message, language),
-                TelegramChatStep.SettingsOffset => SetSettingsOffsetCommand(userId, message, language),
-                TelegramChatStep.SettingsLanguage => SetLanguageCommand(userId, message, language),
-                TelegramChatStep.SettingsShortcut => ShortcutCommand(userId, message, language),
-                TelegramChatStep.SettingsShortcutAdd => ShortcutAddCommand(userId, message, language),
-                TelegramChatStep.SettingsShortcutRemove => ShortcutRemoveCommand(userId, message, language),
-                TelegramChatStep.Statistics => ParseStatisticsTypeCommand(userId, message, language),
-                TelegramChatStep.StatisticsType => ParseStatisticsTimeframeCommand(userId, message, language, data),
-                TelegramChatStep.StatisticsTimeframe => ParseStatisticsEndDateCommand(userId, message, language, data),
-                _ => Task.FromResult(GetMessageFromTemplate(MessageTemplate.UnknownCommand, language))
+                TelegramChatStep.Settings => new (await ParseSettingsCommand(userId, message, language)),
+                TelegramChatStep.SettingsNotifications => new (await SetSettingsNotificationsCommand(userId, message, language)),
+                TelegramChatStep.SettingsOffset => new (await SetSettingsOffsetCommand(userId, message, language)),
+                TelegramChatStep.SettingsLanguage => new (await SetLanguageCommand(userId, message, language)),
+                TelegramChatStep.SettingsShortcut => new (await ShortcutCommand(userId, message, language)),
+                TelegramChatStep.SettingsShortcutAdd => new (await ShortcutAddCommand(userId, message, language)),
+                TelegramChatStep.SettingsShortcutRemove => new (await ShortcutRemoveCommand(userId, message, language)),
+                TelegramChatStep.Statistics => new (await ParseStatisticsTypeCommand(userId, message, language)),
+                TelegramChatStep.StatisticsType => new (await ParseStatisticsTimeframeCommand(userId, message, language, data)),
+                TelegramChatStep.StatisticsTimeframe => await ParseStatisticsEndDateCommand(userId, message, language, data),
+                _ => new (await Task.FromResult(GetMessageFromTemplate(MessageTemplate.UnknownCommand, language)))
             };
         }
 
@@ -139,37 +130,32 @@ namespace HikariNoShisai.BLL.Services
 
         private async Task<TelegramHtmlMessage> ParseStatisticsEndDateCommand(long userId, string message, string language, object? data)
         {
-            var isMultiple = false;
+            if (data is null)
+                return new(GetMessageFromTemplate(MessageTemplate.UnknownCommand, language));
+
+            (MessageTemplate typeCommand, MessageTemplate timeframeCommand) = ((MessageTemplate, MessageTemplate))data;
             var endDate = DateTimeOffset.MinValue;
-            var startDate = DateTimeOffset.MinValue;
-            if (parts.Length != 0)
+            var offset = await _settingsService.GetTimezoneOffset();
+
+            DateTimeOffset.TryParse(message, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out endDate);
+            if (endDate ==  DateTimeOffset.MinValue)
+                endDate = DateTimeOffset.UtcNow.Date;
+            if (timeframeCommand == MessageTemplate.ButtonStatisticsDay)
+                endDate = endDate.AddDays(1).AddTicks(-1);
+            else
+                endDate = endDate.AddTicks(-1);
+            endDate = endDate.ToOffset(offset);
+
+            var startDate = timeframeCommand switch
             {
-                foreach (var part in parts)
-                {
-                    DateTimeOffset.TryParse(part, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out endDate);
-                }
-                if (endDate == DateTimeOffset.MinValue)
-                    endDate = DateTimeOffset.UtcNow;
-
-                foreach (var part in parts)
-                {
-                    (startDate, isMultiple) = part.ToLowerInvariant() switch
-                    {
-                        "week" => (endDate.AddDays(-7), true),
-                        "month" => (endDate.AddMonths(-1), true),
-                        _ => (endDate.AddDays(-1), false)
-                    };
-                }
-            }
-
-            if (endDate == DateTimeOffset.MinValue)
-                endDate = DateTimeOffset.UtcNow;
-            if (startDate == DateTimeOffset.MinValue)
-                startDate = endDate.AddDays(-1);
+                MessageTemplate.ButtonStatisticsWeek => endDate.AddDays(-7).AddTicks(1),
+                MessageTemplate.ButtonStatisticsMonth => endDate.AddMonths(-1).AddTicks(1),
+                _ => endDate.AddDays(-1).AddTicks(1),
+            };
 
             Plot plot = new();
 
-            if (isMultiple)
+            if (typeCommand == MessageTemplate.ButtonStatisticsWeek || typeCommand == MessageTemplate.ButtonStatisticsMonth)
             {
                 var statistics = await _agentStatusLogService.GetMultipleDailyGridStatistics(endDate, startDate);
 
@@ -200,7 +186,7 @@ namespace HikariNoShisai.BLL.Services
             else
             {
                 var statistics = await _agentStatusLogService.GetDailyGridStatistics(endDate);
-                List<PieSlice> slices = new ();
+                List<PieSlice> slices = [];
 
                 if (statistics.GridAvailableCount > 0.0)
                 {
