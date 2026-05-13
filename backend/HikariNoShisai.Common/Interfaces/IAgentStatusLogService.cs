@@ -8,5 +8,7 @@ namespace HikariNoShisai.Common.Interfaces
         Task Create(AgentStatusLogRequest statusLog);
         Task<StatusLogChart> GetDailyGridStatistics(DateTimeOffset endDate, Guid agentId = default);
         Task<List<StatusLogChart>> GetMultipleDailyGridStatistics(DateTimeOffset endDate, DateTimeOffset startDate, Guid agentId = default);
+        Task<StatusLogDayCumulative> GetDailyGridCumulativeStatistics(DateTimeOffset endDate, Guid agentId = default);
+        Task<List<StatusLogDayCumulative>> GetMultipleDailyGridCumulativeStatistics(DateTimeOffset endDate, DateTimeOffset startDate, Guid agentId = default);
     }
 }

@@ -2,10 +2,10 @@
 {
     public class StatusLogDayCumulative
     {
-        public required DateTimeOffset StartDate { get; set; }
+        public required DateTimeOffset Date { get; set; }
         public StatusLogDayCumulativeData? HeadData { get; set; } = null;
 
-        public void AddPeriod(uint periodSeconds, bool isAvailablePeriod)
+        public void AddPeriod(int periodSeconds, bool isAvailablePeriod)
         {
             if (HeadData is null)
             {
@@ -34,7 +34,7 @@
 
         public class StatusLogDayCumulativeData
         {
-            public uint PeriodSeconds  { get; set; } = 0;
+            public int PeriodSeconds  { get; set; } = 0;
             public bool IsAvailable { get; set; } = false;
             public StatusLogDayCumulativeData? NextData { get; set; } = null;
         }

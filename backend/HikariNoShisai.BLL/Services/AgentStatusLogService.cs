@@ -64,27 +64,60 @@ namespace HikariNoShisai.BLL.Services
             return chart;
         }
 
-        public async Task<StatusLogChart> GetDailyGridStatistics(DateTimeOffset endDate, Guid agentId = default)
+        private async Task<StatusLogDayCumulative> GetGridCumulativeStatistics(List<AgentStatusLog> logs, DateTimeOffset endDate)
         {
-            var startDate = endDate.AddDays(-1);
-            var isAnyAgentIdFilter = agentId == default;
-            var totalDuration = 0.0;
+            var chart = new StatusLogDayCumulative { Date = endDate.Date };
 
+            if (logs.Count == 0)
+                return chart;
+
+            for (var i = 0; i < logs.Count; i++)
+            {
+                if (i + 1 != logs.Count)
+                {
+                    var seconds = (logs[i + 1].CreatedAt - logs[i].CreatedAt).TotalSeconds;
+                    chart.AddPeriod((int)seconds, logs[i].IsGridAvailable);
+                }
+                else
+                {
+                    var seconds = (endDate - logs[i].CreatedAt).TotalSeconds;
+                    chart.AddPeriod((int)seconds, logs[i].IsGridAvailable);
+                }
+            }            
+
+            return chart;
+        }
+
+        private async Task<List<AgentStatusLog>> GetAgentStatusLogs(Guid agentId, DateTimeOffset startDate, DateTimeOffset endDate)
+        {
+            List<AgentStatusLog> allLogs = [];
+            var isAnyAgentIdFilter = agentId == default;
             var previousLog = await _context.AgentStatusLogs
                 .Where(x => x.CreatedAt < startDate && (isAnyAgentIdFilter || x.AgentId == agentId))
                 .OrderByDescending(x => x.CreatedAt)
+                .AsNoTracking()
                 .FirstOrDefaultAsync();
+            if (previousLog is not null)
+                allLogs.Add(previousLog);
+
             var logs = await _context.AgentStatusLogs
                 .Where(x => x.CreatedAt >= startDate && x.CreatedAt <= endDate && (isAnyAgentIdFilter || x.AgentId == agentId))
                 .OrderBy(x => x.CreatedAt)
+                .AsNoTracking()
                 .ToListAsync();
-            List<AgentStatusLog> allLogs = [];
-            if (previousLog is not null)
-            {
-                previousLog.CreatedAt = startDate;
-                allLogs.Add(previousLog);
-            }
             allLogs.AddRange(logs);
+
+            if(allLogs.Count != 0)
+                allLogs[0].CreatedAt = startDate;
+
+            return allLogs;
+        }
+
+        public async Task<StatusLogChart> GetDailyGridStatistics(DateTimeOffset endDate, Guid agentId = default)
+        {
+            var startDate = endDate.AddDays(-1);
+            var allLogs = await GetAgentStatusLogs(agentId, startDate, endDate);
+            var totalDuration = 0.0;
 
             if (allLogs.Count != 0)
             {
@@ -93,20 +126,19 @@ namespace HikariNoShisai.BLL.Services
 
             return await GetGridStatistics(allLogs, totalDuration, endDate);
         }
+        public async Task<StatusLogDayCumulative> GetDailyGridCumulativeStatistics(DateTimeOffset endDate, Guid agentId = default)
+        {
+            var startDate = endDate.AddDays(-1);
+            var allLogs = await GetAgentStatusLogs(agentId, startDate, endDate);
+ 
+            return await GetGridCumulativeStatistics(allLogs, endDate);
+        }
 
         public async Task<List<StatusLogChart>> GetMultipleDailyGridStatistics(DateTimeOffset endDate, DateTimeOffset startDate, Guid agentId = default)
         {
             var isAnyAgentIdFilter = agentId == default;
-            var previousLog = await _context.AgentStatusLogs
-                .Where(x => x.CreatedAt < startDate && (isAnyAgentIdFilter || x.AgentId == agentId))
-                .OrderByDescending(x => x.CreatedAt)
-                .FirstOrDefaultAsync();
-            var logs = await _context.AgentStatusLogs
-                .Where(x => x.CreatedAt >= startDate && x.CreatedAt <= endDate && (isAnyAgentIdFilter || x.AgentId == agentId))
-                .OrderBy(x => x.CreatedAt)
-                .ToListAsync();
-
-            previousLog?.CreatedAt = startDate;
+            AgentStatusLog? previousLog = null;
+            var allLogs = await GetAgentStatusLogs(agentId, startDate, endDate);
 
             var result = new List<StatusLogChart>();
             var days = (endDate.Date - startDate.Date).Days;
@@ -115,7 +147,7 @@ namespace HikariNoShisai.BLL.Services
             {
                 var dayStart = startDate.AddDays(i);
                 var dayEnd = dayStart.AddDays(1);
-                var dailyLogs = logs.Where(x => x.CreatedAt >= dayStart && x.CreatedAt < dayEnd).ToList();
+                var dailyLogs = allLogs.Where(x => x.CreatedAt >= dayStart && x.CreatedAt < dayEnd).ToList();
                 if (previousLog is not null)
                     dailyLogs.Insert(0, previousLog);
                 if (dailyLogs.Count == 0)
@@ -124,6 +156,33 @@ namespace HikariNoShisai.BLL.Services
                 var totalDuration = (dayEnd - dayStart).TotalSeconds;
                 var chart = await GetGridStatistics(dailyLogs, totalDuration, dayEnd);
                 chart.Title = dayStart.ToString("yyyy-MM-dd");
+                result.Add(chart);
+
+                previousLog = dailyLogs.Last();
+                previousLog?.CreatedAt = dayEnd;
+            }
+
+            return result;
+        }
+
+        public async Task<List<StatusLogDayCumulative>> GetMultipleDailyGridCumulativeStatistics(DateTimeOffset endDate, DateTimeOffset startDate, Guid agentId = default)
+        {
+            var isAnyAgentIdFilter = agentId == default;
+            AgentStatusLog? previousLog = null;
+            var allLogs = await GetAgentStatusLogs(agentId, startDate, endDate);
+
+            var result = new List<StatusLogDayCumulative>();
+            var days = (endDate.Date - startDate.Date).Days;
+
+            for (var i = 0; i < days; i++)
+            {
+                var dayStart = startDate.AddDays(i);
+                var dayEnd = dayStart.AddDays(1);
+                var dailyLogs = allLogs.Where(x => x.CreatedAt >= dayStart && x.CreatedAt < dayEnd).ToList();
+                if (previousLog is not null)
+                    dailyLogs.Insert(0, previousLog);
+
+                var chart = await GetGridCumulativeStatistics(dailyLogs, dayEnd);
                 result.Add(chart);
 
                 previousLog = dailyLogs.Last();

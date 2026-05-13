@@ -306,7 +306,7 @@ namespace HikariNoShisai.BLL.Tests
                 IsGridAvailable = true,
                 GridVoltage = 220,
                 BatteryVoltage = 12,
-                CreatedAt = utcNow.AddHours(-8)
+                CreatedAt = utcNow.AddHours(-12)
             });
             context.SaveChanges();
 
