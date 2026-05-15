@@ -155,20 +155,41 @@ namespace HikariNoShisai.BLL.Services
 
             Plot plot = new();
 
-            if (typeCommand == MessageTemplate.ButtonStatisticsWeek || typeCommand == MessageTemplate.ButtonStatisticsMonth)
+            if (timeframeCommand == MessageTemplate.ButtonStatisticsWeek || timeframeCommand == MessageTemplate.ButtonStatisticsMonth)
             {
-                var statistics = await _agentStatusLogService.GetMultipleDailyGridStatistics(endDate, startDate);
-
-                var bars = new List<Bar> ();
+                var bars = new List<Bar>();
                 var ticks = new List<Tick>();
 
-                for (int i = 0; i < statistics.Count; i++)
+                if (typeCommand == MessageTemplate.ButtonStatisticsCumulative)
                 {
-                    bars.Add(new Bar() { Position = i + 1, ValueBase = 0, Value = statistics[i].GridAvailableCount, FillColor = Colors.Green });
-                    bars.Add(new Bar() { Position = i + 1, ValueBase = statistics[i].GridAvailableCount, Value = 100.00, FillColor = Colors.Red });
+                    var statistics = await _agentStatusLogService.GetMultipleDailyGridCumulativeStatistics(endDate, startDate);
 
-                    ticks.Add(new Tick(i + 1, statistics[i].Title));
+                    for (int i = 0; i < statistics.Count; i++)
+                    {
+                        var valueBase = 0;
+
+                        foreach (var item in statistics[i].GetNext())
+                        {
+                            bars.Add(new Bar() { Position = i + 1, ValueBase = valueBase, Value = item.PeriodSeconds, FillColor = item.IsAvailable ? Colors.Green : Colors.Red });
+                            valueBase += item.PeriodSeconds;
+                        }
+
+                        ticks.Add(new Tick(i + 1, statistics[i].Date.ToString("yyyy-MM-dd")));
+                    }
                 }
+                else
+                {
+                    var statistics = await _agentStatusLogService.GetMultipleDailyGridStatistics(endDate, startDate);
+
+                    for (int i = 0; i < statistics.Count; i++)
+                    {
+                        bars.Add(new Bar() { Position = i + 1, ValueBase = 0, Value = statistics[i].GridAvailableCount, FillColor = Colors.Green });
+                        bars.Add(new Bar() { Position = i + 1, ValueBase = statistics[i].GridAvailableCount, Value = 100.00, FillColor = Colors.Red });
+
+                        ticks.Add(new Tick(i + 1, statistics[i].Title));
+                    }
+                }
+                
                 plot.Add.Bars(bars);
                 plot.Axes.Bottom.TickGenerator = new ScottPlot.TickGenerators.NumericManual([.. ticks]);
                 plot.Axes.Bottom.TickLabelStyle.Rotation = 45;
@@ -185,32 +206,52 @@ namespace HikariNoShisai.BLL.Services
             }
             else
             {
-                var statistics = await _agentStatusLogService.GetDailyGridStatistics(endDate);
                 List<PieSlice> slices = [];
+                if (typeCommand == MessageTemplate.ButtonStatisticsCumulative)
+                {
+                    var statistics = await _agentStatusLogService.GetDailyGridCumulativeStatistics(endDate);
 
-                if (statistics.GridAvailableCount > 0.0)
-                {
-                    slices.Add(new PieSlice()
+                    foreach (var item in statistics.GetNext())
                     {
-                        Value = statistics.GridAvailableCount,
-                        FillColor = Colors.Green,
-                        Label = $"{statistics.GridAvailableCount:0}%",
-                        LabelFontSize = 20,
-                        LabelBold = true,
-                        LabelFontColor = Colors.Black.WithAlpha(.5)
-                    });
+                        slices.Add(new PieSlice()
+                        {
+                            Value = item.PeriodSeconds,
+                            FillColor = item.IsAvailable ? Colors.Green : Colors.Red,
+                            Label = FormatDuration(TimeSpan.FromSeconds(item.PeriodSeconds)),
+                            LabelFontSize = 20,
+                            LabelBold = true,
+                            LabelFontColor = Colors.Black.WithAlpha(.5)
+                        });
+                    }
                 }
-                if (statistics.GridUnavailableCount > 0.0)
+                else
                 {
-                    slices.Add(new PieSlice()
+                    var statistics = await _agentStatusLogService.GetDailyGridStatistics(endDate);
+
+                    if (statistics.GridAvailableCount > 0.0)
                     {
-                        Value = statistics.GridUnavailableCount,
-                        FillColor = Colors.Red,
-                        Label = $"{statistics.GridUnavailableCount:0}%",
-                        LabelFontSize = 20,
-                        LabelBold = true,
-                        LabelFontColor = Colors.Black.WithAlpha(.5)
-                    });
+                        slices.Add(new PieSlice()
+                        {
+                            Value = statistics.GridAvailableCount,
+                            FillColor = Colors.Green,
+                            Label = $"{statistics.GridAvailableCount:0}%",
+                            LabelFontSize = 20,
+                            LabelBold = true,
+                            LabelFontColor = Colors.Black.WithAlpha(.5)
+                        });
+                    }
+                    if (statistics.GridUnavailableCount > 0.0)
+                    {
+                        slices.Add(new PieSlice()
+                        {
+                            Value = statistics.GridUnavailableCount,
+                            FillColor = Colors.Red,
+                            Label = $"{statistics.GridUnavailableCount:0}%",
+                            LabelFontSize = 20,
+                            LabelBold = true,
+                            LabelFontColor = Colors.Black.WithAlpha(.5)
+                        });
+                    }
                 }
 
                 plot.Add.Pie(slices);

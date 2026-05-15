@@ -36,7 +36,7 @@
         {
             public int PeriodSeconds  { get; set; } = 0;
             public bool IsAvailable { get; set; } = false;
-            public StatusLogDayCumulativeData? NextData { get; set; } = null;
+            internal StatusLogDayCumulativeData? NextData { get; set; } = null;
         }
     }
 }
