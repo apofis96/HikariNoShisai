@@ -64,7 +64,7 @@ namespace HikariNoShisai.BLL.Services
             return chart;
         }
 
-        private async Task<StatusLogDayCumulative> GetGridCumulativeStatistics(List<AgentStatusLog> logs, DateTimeOffset endDate)
+        private StatusLogDayCumulative GetGridCumulativeStatistics(List<AgentStatusLog> logs, DateTimeOffset endDate)
         {
             var chart = new StatusLogDayCumulative { Date = endDate.Date };
 
@@ -131,7 +131,7 @@ namespace HikariNoShisai.BLL.Services
             var startDate = endDate.AddDays(-1);
             var allLogs = await GetAgentStatusLogs(agentId, startDate, endDate);
  
-            return await GetGridCumulativeStatistics(allLogs, endDate);
+            return GetGridCumulativeStatistics(allLogs, endDate);
         }
 
         public async Task<List<StatusLogChart>> GetMultipleDailyGridStatistics(DateTimeOffset endDate, DateTimeOffset startDate, Guid agentId = default)
@@ -182,7 +182,7 @@ namespace HikariNoShisai.BLL.Services
                 if (previousLog is not null)
                     dailyLogs.Insert(0, previousLog);
 
-                var chart = await GetGridCumulativeStatistics(dailyLogs, dayEnd);
+                var chart = GetGridCumulativeStatistics(dailyLogs, dayEnd);
                 result.Add(chart);
 
                 previousLog = dailyLogs.Last();

@@ -4,10 +4,7 @@ using HikariNoShisai.Common.Entities;
 using HikariNoShisai.Common.Interfaces;
 using HikariNoShisai.DAL;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Moq;
-using System.Net.NetworkInformation;
-using static HikariNoShisai.Common.Constants.TextConstants;
 
 namespace HikariNoShisai.BLL.Tests
 {
@@ -315,6 +312,211 @@ namespace HikariNoShisai.BLL.Tests
             Assert.NotNull(gridStatistics);
             Assert.Equal(50, gridStatistics.GridAvailableCount);
             Assert.Equal(50, gridStatistics.GridUnavailableCount);
+        }
+        #endregion
+        #region GetDailyGridCumulativeStatistics
+        [Fact]
+        public async Task GetDailyGridCumulativeStatistics_WhenNoData_ReturnsEmptyChart()
+        {
+            var context = CreateContext();
+            var mockMessageQueue = new Mock<IMessageQueue>();
+            var mockSettingsService = new Mock<ISettingsService>();
+            var service = new AgentStatusLogService(context, mockMessageQueue.Object, mockSettingsService.Object);
+            var utcNow = DateTimeOffset.UtcNow;
+
+            var gridStatistics = await service.GetDailyGridCumulativeStatistics(utcNow);
+
+            Assert.NotNull(gridStatistics);
+            Assert.Empty(gridStatistics.GetData());
+            Assert.Equal(utcNow.Date, gridStatistics.Date);
+        }
+
+        [Fact]
+        public async Task GetDailyGridCumulativeStatistics_WhenNoDataForPeriodButAvailable_ReturnsAvailableChart()
+        {
+            var context = CreateContext();
+            var mockMessageQueue = new Mock<IMessageQueue>();
+            var mockSettingsService = new Mock<ISettingsService>();
+            var service = new AgentStatusLogService(context, mockMessageQueue.Object, mockSettingsService.Object);
+            context.AgentStatusLogs.Add(new AgentStatusLog
+            {
+                AgentId = Guid.NewGuid(),
+                IsGridAvailable = true,
+                GridVoltage = 220,
+                BatteryVoltage = 12,
+                CreatedAt = DateTimeOffset.UtcNow.AddDays(-5)
+            });
+            context.SaveChanges();
+
+            var gridStatistics = await service.GetDailyGridCumulativeStatistics(DateTimeOffset.UtcNow.AddDays(-1));
+
+            Assert.NotNull(gridStatistics);
+            Assert.Single(gridStatistics.GetData());
+            Assert.True(gridStatistics.GetData().First().IsAvailable);
+            Assert.Equal(24*60*60, gridStatistics.GetData().First().PeriodSeconds);
+        }
+
+        [Fact]
+        public async Task GetDailyGridCumulativeStatistics_WhenNoDataForPeriodButNotAvailable_ReturnsNotAvailableChart()
+        {
+            var context = CreateContext();
+            var mockMessageQueue = new Mock<IMessageQueue>();
+            var mockSettingsService = new Mock<ISettingsService>();
+            var service = new AgentStatusLogService(context, mockMessageQueue.Object, mockSettingsService.Object);
+            context.AgentStatusLogs.Add(new AgentStatusLog
+            {
+                AgentId = Guid.NewGuid(),
+                IsGridAvailable = true,
+                GridVoltage = 220,
+                BatteryVoltage = 12,
+                CreatedAt = DateTimeOffset.UtcNow.AddDays(-5)
+            });
+            context.AgentStatusLogs.Add(new AgentStatusLog
+            {
+                AgentId = Guid.NewGuid(),
+                IsGridAvailable = false,
+                GridVoltage = 220,
+                BatteryVoltage = 12,
+                CreatedAt = DateTimeOffset.UtcNow.AddDays(-3)
+            });
+            context.SaveChanges();
+
+            var gridStatistics = await service.GetDailyGridCumulativeStatistics(DateTimeOffset.UtcNow.AddDays(-1));
+
+            Assert.NotNull(gridStatistics);
+            Assert.Single(gridStatistics.GetData());
+            Assert.False(gridStatistics.GetData().First().IsAvailable);
+            Assert.Equal(24 * 60 * 60, gridStatistics.GetData().First().PeriodSeconds);
+        }
+
+        [Fact]
+        public async Task GetDailyGridCumulativeStatistics_WhenSingleDataForPeriodWithPrevious_ReturnsChart()
+        {
+            var context = CreateContext();
+            var mockMessageQueue = new Mock<IMessageQueue>();
+            var mockSettingsService = new Mock<ISettingsService>();
+            var service = new AgentStatusLogService(context, mockMessageQueue.Object, mockSettingsService.Object);
+            var utcStartDay = DateTimeOffset.UtcNow.Date;
+            context.AgentStatusLogs.Add(new AgentStatusLog
+            {
+                AgentId = Guid.NewGuid(),
+                IsGridAvailable = true,
+                GridVoltage = 220,
+                BatteryVoltage = 12,
+                CreatedAt = utcStartDay.AddDays(-5)
+            });
+            context.AgentStatusLogs.Add(new AgentStatusLog
+            {
+                AgentId = Guid.NewGuid(),
+                IsGridAvailable = false,
+                GridVoltage = 220,
+                BatteryVoltage = 12,
+                CreatedAt = utcStartDay.AddHours(12)
+            });
+            context.SaveChanges();
+
+            var gridStatistics = await service.GetDailyGridCumulativeStatistics(utcStartDay.AddDays(1));
+            var data = gridStatistics.GetData().ToArray();
+
+            Assert.NotNull(gridStatistics);
+            Assert.Equal(2, data.Length);
+            Assert.True(data[0].IsAvailable);
+            Assert.Equal(12 * 60 * 60, data[0].PeriodSeconds);
+            Assert.False(data[1].IsAvailable);
+            Assert.Equal(12 * 60 * 60, data[1].PeriodSeconds);
+        }
+
+        [Fact]
+        public async Task GetDailyGridCumulativeStatistics_WhenMultipleDataForPeriodWithPrevious_ReturnsChart()
+        {
+            var context = CreateContext();
+            var mockMessageQueue = new Mock<IMessageQueue>();
+            var mockSettingsService = new Mock<ISettingsService>();
+            var service = new AgentStatusLogService(context, mockMessageQueue.Object, mockSettingsService.Object);
+            var utcStartDay = DateTimeOffset.UtcNow.Date;
+            context.AgentStatusLogs.Add(new AgentStatusLog
+            {
+                AgentId = Guid.NewGuid(),
+                IsGridAvailable = true,
+                GridVoltage = 220,
+                BatteryVoltage = 12,
+                CreatedAt = utcStartDay.AddDays(-5)
+            });
+            context.AgentStatusLogs.Add(new AgentStatusLog
+            {
+                AgentId = Guid.NewGuid(),
+                IsGridAvailable = false,
+                GridVoltage = 220,
+                BatteryVoltage = 12,
+                CreatedAt = utcStartDay.AddHours(8)
+            });
+            context.AgentStatusLogs.Add(new AgentStatusLog
+            {
+                AgentId = Guid.NewGuid(),
+                IsGridAvailable = true,
+                GridVoltage = 220,
+                BatteryVoltage = 12,
+                CreatedAt = utcStartDay.AddHours(16)
+            });
+            context.SaveChanges();
+
+            var gridStatistics = await service.GetDailyGridCumulativeStatistics(utcStartDay.AddDays(1));
+            var data = gridStatistics.GetData().ToArray();
+
+            Assert.NotNull(gridStatistics);
+            Assert.Equal(3, data.Length);
+            Assert.True(data[0].IsAvailable);
+            Assert.Equal(8 * 60 * 60, data[0].PeriodSeconds);
+            Assert.False(data[1].IsAvailable);
+            Assert.Equal(8 * 60 * 60, data[1].PeriodSeconds);
+            Assert.True(data[2].IsAvailable);
+            Assert.Equal(8 * 60 * 60, data[1].PeriodSeconds);
+        }
+
+        [Fact]
+        public async Task GetDailyGridCumulativeStatistics_WhenMultipleDataForPeriodWithPreviousAgentNotMatch_ReturnsChart()
+        {
+            var context = CreateContext();
+            var mockMessageQueue = new Mock<IMessageQueue>();
+            var mockSettingsService = new Mock<ISettingsService>();
+            var service = new AgentStatusLogService(context, mockMessageQueue.Object, mockSettingsService.Object);
+            var utcStartDay = DateTimeOffset.UtcNow.Date;
+            var agentId = Guid.NewGuid();
+            context.AgentStatusLogs.Add(new AgentStatusLog
+            {
+                AgentId = Guid.NewGuid(),
+                IsGridAvailable = true,
+                GridVoltage = 220,
+                BatteryVoltage = 12,
+                CreatedAt = utcStartDay.AddDays(-5)
+            });
+            context.AgentStatusLogs.Add(new AgentStatusLog
+            {
+                AgentId = agentId,
+                IsGridAvailable = false,
+                GridVoltage = 220,
+                BatteryVoltage = 12,
+                CreatedAt = utcStartDay.AddHours(8)
+            });
+            context.AgentStatusLogs.Add(new AgentStatusLog
+            {
+                AgentId = agentId,
+                IsGridAvailable = true,
+                GridVoltage = 220,
+                BatteryVoltage = 12,
+                CreatedAt = utcStartDay.AddHours(16)
+            });
+            context.SaveChanges();
+
+            var gridStatistics = await service.GetDailyGridCumulativeStatistics(utcStartDay.AddDays(1), agentId: agentId);
+            var data = gridStatistics.GetData().ToArray();
+
+            Assert.NotNull(gridStatistics);
+            Assert.Equal(2, data.Length);
+            Assert.False(data[0].IsAvailable);
+            Assert.Equal(16 * 60 * 60, data[0].PeriodSeconds);
+            Assert.True(data[1].IsAvailable);
+            Assert.Equal(8 * 60 * 60, data[1].PeriodSeconds);
         }
         #endregion
     }

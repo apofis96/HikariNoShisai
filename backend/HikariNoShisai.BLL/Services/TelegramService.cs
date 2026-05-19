@@ -168,7 +168,7 @@ namespace HikariNoShisai.BLL.Services
                     {
                         var valueBase = 0;
 
-                        foreach (var item in statistics[i].GetNext())
+                        foreach (var item in statistics[i].GetData())
                         {
                             bars.Add(new Bar() { Position = i + 1, ValueBase = valueBase, Value = item.PeriodSeconds, FillColor = item.IsAvailable ? Colors.Green : Colors.Red });
                             valueBase += item.PeriodSeconds;
@@ -211,7 +211,7 @@ namespace HikariNoShisai.BLL.Services
                 {
                     var statistics = await _agentStatusLogService.GetDailyGridCumulativeStatistics(endDate);
 
-                    foreach (var item in statistics.GetNext())
+                    foreach (var item in statistics.GetData())
                     {
                         slices.Add(new PieSlice()
                         {

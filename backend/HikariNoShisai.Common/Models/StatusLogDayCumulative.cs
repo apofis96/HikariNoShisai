@@ -21,7 +21,7 @@
             currentData.NextData = new StatusLogDayCumulativeData { PeriodSeconds = periodSeconds, IsAvailable = isAvailablePeriod };
         }
 
-        public IEnumerable<StatusLogDayCumulativeData> GetNext()
+        public IEnumerable<StatusLogDayCumulativeData> GetData()
         {
             var current = HeadData;
             while (current is not null)
