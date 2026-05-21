@@ -3,9 +3,11 @@ using HikariNoShisai.Common.Constants;
 using HikariNoShisai.Common.Interfaces;
 using HikariNoShisai.Common.Models;
 using Microsoft.Extensions.Options;
+using System.Text;
 using Telegram.Bot;
 using Telegram.Bot.Extensions;
 using Telegram.Bot.Types;
+using static HikariNoShisai.Common.Constants.TextConstants;
 
 namespace HikariNoShisai.WebAPI.Endpoints
 {
@@ -49,6 +51,27 @@ namespace HikariNoShisai.WebAPI.Endpoints
 
                 return await next(context);
             });
+
+            if (app.Environment.IsDevelopment())
+            {
+                botApi.MapGet("/debug", async (ITelegramService telegramService) =>
+                {
+                    await telegramService.Handle(-1, "/statistics");
+                    await telegramService.Handle(-1, TextConstants.GetMessageFromTemplate(MessageTemplate.ButtonStatisticsCumulative, "en"));
+                    await telegramService.Handle(-1, TextConstants.GetMessageFromTemplate(MessageTemplate.ButtonStatisticsDay, "en"));
+                    var data = await telegramService.Handle(-1, "2026-03-21");
+                    var response = "";
+
+                    data.Streams?.ToList().ForEach(s =>
+                    {
+                        using var memoryStream = new MemoryStream();
+                        s.CopyTo(memoryStream);
+
+                        response += Convert.ToBase64String(memoryStream.ToArray());
+                    });
+                    return Results.Ok(response);
+                });
+            }
         }
 
         static async Task OnUpdate(TelegramBotClient bot, Update update, ITelegramService telegramService, IUserService userService)

@@ -140,11 +140,10 @@ namespace HikariNoShisai.BLL.Services
             DateTimeOffset.TryParse(message, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out endDate);
             if (endDate ==  DateTimeOffset.MinValue)
                 endDate = DateTimeOffset.UtcNow.Date;
-            if (timeframeCommand == MessageTemplate.ButtonStatisticsDay)
-                endDate = endDate.AddDays(1).AddTicks(-1);
-            else
-                endDate = endDate.AddTicks(-1);
-            endDate = endDate.ToOffset(offset);
+            
+            endDate = endDate.AddDays(1).AddTicks(-1);
+
+            endDate = endDate.Add(-offset);
 
             var startDate = timeframeCommand switch
             {
@@ -170,15 +169,27 @@ namespace HikariNoShisai.BLL.Services
 
                         foreach (var item in statistics[i].GetData())
                         {
-                            bars.Add(new Bar() { Position = i + 1, ValueBase = valueBase, Value = item.PeriodSeconds, FillColor = item.IsAvailable ? Colors.Green : Colors.Red });
+                            bars.Add(new Bar() { Position = i + 1, ValueBase = valueBase, Value = item.PeriodSeconds + valueBase, FillColor = item.IsAvailable ? Colors.Green : Colors.Red });
                             valueBase += item.PeriodSeconds;
                         }
 
                         ticks.Add(new Tick(i + 1, statistics[i].Date.ToString("yyyy-MM-dd")));
                     }
+
+                    var dayTicks = new List<Tick>();
+                    for (int i = 0; i < 12; i++)
+                    {
+                        var hour = (i + 1) * 2;
+                        var tickTime = 60 * 60 * hour;
+                        dayTicks.Add(new Tick(tickTime, $"{hour:D2}:00"));
+                    }
+                    plot.Axes.Left.TickGenerator = new ScottPlot.TickGenerators.NumericManual([.. dayTicks]);
+                    plot.Axes.Left.LockSize(40f);
+
                 }
                 else
                 {
+                    plot.Axes.Left.LockSize(35f);
                     var statistics = await _agentStatusLogService.GetMultipleDailyGridStatistics(endDate, startDate);
 
                     for (int i = 0; i < statistics.Count; i++)
@@ -196,7 +207,6 @@ namespace HikariNoShisai.BLL.Services
                 plot.Axes.Bottom.TickLabelStyle.Alignment = Alignment.MiddleLeft;
                 plot.Axes.Bottom.LockSize(60f);
                 plot.Axes.Right.LockSize(50f);
-                plot.Axes.Left.LockSize(35f);
                 plot.Axes.Top.LockSize(15f);
                 plot.Axes.Margins(0, 0);
                 plot.Grid.MajorLineWidth = 2;
@@ -210,17 +220,20 @@ namespace HikariNoShisai.BLL.Services
                 if (typeCommand == MessageTemplate.ButtonStatisticsCumulative)
                 {
                     var statistics = await _agentStatusLogService.GetDailyGridCumulativeStatistics(endDate);
+                    var valueBase = 0;
 
                     foreach (var item in statistics.GetData())
                     {
+                        valueBase += item.PeriodSeconds;
                         slices.Add(new PieSlice()
                         {
                             Value = item.PeriodSeconds,
                             FillColor = item.IsAvailable ? Colors.Green : Colors.Red,
-                            Label = FormatDuration(TimeSpan.FromSeconds(item.PeriodSeconds)),
+                            Label = FormatDuration(TimeSpan.FromSeconds(valueBase)),
                             LabelFontSize = 20,
                             LabelBold = true,
-                            LabelFontColor = Colors.Black.WithAlpha(.5)
+                            LabelFontColor = Colors.Black.WithAlpha(.5),
+                            LegendText = FormatDuration(TimeSpan.FromSeconds(item.PeriodSeconds))
                         });
                     }
                 }
@@ -249,7 +262,7 @@ namespace HikariNoShisai.BLL.Services
                             Label = $"{statistics.GridUnavailableCount:0}%",
                             LabelFontSize = 20,
                             LabelBold = true,
-                            LabelFontColor = Colors.Black.WithAlpha(.5)
+                            LabelFontColor = Colors.Black.WithAlpha(.5),
                         });
                     }
                 }
