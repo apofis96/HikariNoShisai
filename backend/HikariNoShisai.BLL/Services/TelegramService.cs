@@ -159,9 +159,9 @@ namespace HikariNoShisai.BLL.Services
                 var bars = new List<Bar>();
                 var ticks = new List<Tick>();
 
-                if (typeCommand == MessageTemplate.ButtonStatisticsCumulative)
+                if (typeCommand == MessageTemplate.ButtonStatisticsTime)
                 {
-                    var statistics = await _agentStatusLogService.GetMultipleDailyGridCumulativeStatistics(endDate, startDate);
+                    var statistics = await _agentStatusLogService.GetMultipleDailyGridTimedStatistics(endDate, startDate);
 
                     for (int i = 0; i < statistics.Count; i++)
                     {
@@ -184,7 +184,7 @@ namespace HikariNoShisai.BLL.Services
                         dayTicks.Add(new Tick(tickTime, $"{hour:D2}:00"));
                     }
                     plot.Axes.Left.TickGenerator = new ScottPlot.TickGenerators.NumericManual([.. dayTicks]);
-                    plot.Axes.Left.LockSize(40f);
+                    plot.Axes.Left.LockSize(42f);
 
                 }
                 else
@@ -217,9 +217,9 @@ namespace HikariNoShisai.BLL.Services
             else
             {
                 List<PieSlice> slices = [];
-                if (typeCommand == MessageTemplate.ButtonStatisticsCumulative)
+                if (typeCommand == MessageTemplate.ButtonStatisticsTime)
                 {
-                    var statistics = await _agentStatusLogService.GetDailyGridCumulativeStatistics(endDate);
+                    var statistics = await _agentStatusLogService.GetDailyGridTimedStatistics(endDate);
                     var valueBase = 0;
 
                     foreach (var item in statistics.GetData())
@@ -278,7 +278,13 @@ namespace HikariNoShisai.BLL.Services
 
             return new TelegramHtmlMessage
             {
-                HtmlContent = GetStreamImageTag(0),
+                HtmlContent = await FormatResponse(
+                    userId,
+                    language,
+                    buttons: [MessageTemplate.ButtonShortcutPlaceholder],
+                    chatStep: TelegramChatStep.None,
+                    rawMessage: GetStreamImageTag(0))
+                ,
                 Streams = [new MemoryStream(imageByte)]
             };
         }
@@ -495,10 +501,11 @@ namespace HikariNoShisai.BLL.Services
         private async Task<string> FormatResponse(
             long userId,
             string language,
-            MessageTemplate template,
+            MessageTemplate? template = null,
             MessageTemplate[]? buttons = null,
             TelegramChatStep? chatStep = null,
             object? data = null,
+            string? rawMessage = null,
             string[]? rawButtons = null)
         {
             if (chatStep.HasValue)
@@ -531,7 +538,9 @@ namespace HikariNoShisai.BLL.Services
                 formattedButtons = [.. formattedButtons, .. rawButtons];
             }
 
-            return ButtonFormatter.AddButtons(GetMessageFromTemplate(template, language), formattedButtons);
+            var message = rawMessage ?? GetMessageFromTemplate(template ?? MessageTemplate.SuccessfulCommand, language);
+
+            return ButtonFormatter.AddButtons(message, formattedButtons);
         }
         private string GetCacheKey(long userId) => $"{CacheKeyPrefix}{userId}";
         private void SetCache(long userId, TelegramChatStep chatStep, object? data = null) => _memoryCache.Set(GetCacheKey(userId), new TelegramCache { ChatStep = chatStep, Data = data }, Expiration);

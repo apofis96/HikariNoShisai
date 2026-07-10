@@ -314,9 +314,9 @@ namespace HikariNoShisai.BLL.Tests
             Assert.Equal(50, gridStatistics.GridUnavailableCount);
         }
         #endregion
-        #region GetDailyGridCumulativeStatistics
+        #region GetDailyGridTimedStatistics
         [Fact]
-        public async Task GetDailyGridCumulativeStatistics_WhenNoData_ReturnsEmptyChart()
+        public async Task GetDailyGridTimedStatistics_WhenNoData_ReturnsEmptyChart()
         {
             var context = CreateContext();
             var mockMessageQueue = new Mock<IMessageQueue>();
@@ -324,7 +324,7 @@ namespace HikariNoShisai.BLL.Tests
             var service = new AgentStatusLogService(context, mockMessageQueue.Object, mockSettingsService.Object);
             var utcNow = DateTimeOffset.UtcNow;
 
-            var gridStatistics = await service.GetDailyGridCumulativeStatistics(utcNow);
+            var gridStatistics = await service.GetDailyGridTimedStatistics(utcNow);
 
             Assert.NotNull(gridStatistics);
             Assert.Empty(gridStatistics.GetData());
@@ -332,7 +332,7 @@ namespace HikariNoShisai.BLL.Tests
         }
 
         [Fact]
-        public async Task GetDailyGridCumulativeStatistics_WhenNoDataForPeriodButAvailable_ReturnsAvailableChart()
+        public async Task GetDailyGridTimedStatistics_WhenNoDataForPeriodButAvailable_ReturnsAvailableChart()
         {
             var context = CreateContext();
             var mockMessageQueue = new Mock<IMessageQueue>();
@@ -348,7 +348,7 @@ namespace HikariNoShisai.BLL.Tests
             });
             context.SaveChanges();
 
-            var gridStatistics = await service.GetDailyGridCumulativeStatistics(DateTimeOffset.UtcNow.AddDays(-1));
+            var gridStatistics = await service.GetDailyGridTimedStatistics(DateTimeOffset.UtcNow.AddDays(-1));
 
             Assert.NotNull(gridStatistics);
             Assert.Single(gridStatistics.GetData());
@@ -357,7 +357,7 @@ namespace HikariNoShisai.BLL.Tests
         }
 
         [Fact]
-        public async Task GetDailyGridCumulativeStatistics_WhenNoDataForPeriodButNotAvailable_ReturnsNotAvailableChart()
+        public async Task GetDailyGridTimedStatistics_WhenNoDataForPeriodButNotAvailable_ReturnsNotAvailableChart()
         {
             var context = CreateContext();
             var mockMessageQueue = new Mock<IMessageQueue>();
@@ -381,7 +381,7 @@ namespace HikariNoShisai.BLL.Tests
             });
             context.SaveChanges();
 
-            var gridStatistics = await service.GetDailyGridCumulativeStatistics(DateTimeOffset.UtcNow.AddDays(-1));
+            var gridStatistics = await service.GetDailyGridTimedStatistics(DateTimeOffset.UtcNow.AddDays(-1));
 
             Assert.NotNull(gridStatistics);
             Assert.Single(gridStatistics.GetData());
@@ -390,7 +390,7 @@ namespace HikariNoShisai.BLL.Tests
         }
 
         [Fact]
-        public async Task GetDailyGridCumulativeStatistics_WhenSingleDataForPeriodWithPrevious_ReturnsChart()
+        public async Task GetDailyGridTimedStatistics_WhenSingleDataForPeriodWithPrevious_ReturnsChart()
         {
             var context = CreateContext();
             var mockMessageQueue = new Mock<IMessageQueue>();
@@ -415,7 +415,7 @@ namespace HikariNoShisai.BLL.Tests
             });
             context.SaveChanges();
 
-            var gridStatistics = await service.GetDailyGridCumulativeStatistics(utcStartDay.AddDays(1));
+            var gridStatistics = await service.GetDailyGridTimedStatistics(utcStartDay.AddDays(1));
             var data = gridStatistics.GetData().ToArray();
 
             Assert.NotNull(gridStatistics);
@@ -427,7 +427,7 @@ namespace HikariNoShisai.BLL.Tests
         }
 
         [Fact]
-        public async Task GetDailyGridCumulativeStatistics_WhenMultipleDataForPeriodWithPrevious_ReturnsChart()
+        public async Task GetDailyGridTimedStatistics_WhenMultipleDataForPeriodWithPrevious_ReturnsChart()
         {
             var context = CreateContext();
             var mockMessageQueue = new Mock<IMessageQueue>();
@@ -460,7 +460,7 @@ namespace HikariNoShisai.BLL.Tests
             });
             context.SaveChanges();
 
-            var gridStatistics = await service.GetDailyGridCumulativeStatistics(utcStartDay.AddDays(1));
+            var gridStatistics = await service.GetDailyGridTimedStatistics(utcStartDay.AddDays(1));
             var data = gridStatistics.GetData().ToArray();
 
             Assert.NotNull(gridStatistics);
@@ -474,7 +474,7 @@ namespace HikariNoShisai.BLL.Tests
         }
 
         [Fact]
-        public async Task GetDailyGridCumulativeStatistics_WhenMultipleDataForPeriodWithPreviousAgentNotMatch_ReturnsChart()
+        public async Task GetDailyGridTimedStatistics_WhenMultipleDataForPeriodWithPreviousAgentNotMatch_ReturnsChart()
         {
             var context = CreateContext();
             var mockMessageQueue = new Mock<IMessageQueue>();
@@ -508,7 +508,7 @@ namespace HikariNoShisai.BLL.Tests
             });
             context.SaveChanges();
 
-            var gridStatistics = await service.GetDailyGridCumulativeStatistics(utcStartDay.AddDays(1), agentId: agentId);
+            var gridStatistics = await service.GetDailyGridTimedStatistics(utcStartDay.AddDays(1), agentId: agentId);
             var data = gridStatistics.GetData().ToArray();
 
             Assert.NotNull(gridStatistics);

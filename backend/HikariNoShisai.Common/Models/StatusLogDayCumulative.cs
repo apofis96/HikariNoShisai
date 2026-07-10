@@ -1,15 +1,15 @@
 ﻿namespace HikariNoShisai.Common.Models
 {
-    public class StatusLogDayCumulative
+    public class StatusLogDayTimed
     {
         public required DateTimeOffset Date { get; set; }
-        public StatusLogDayCumulativeData? HeadData { get; set; } = null;
+        public StatusLogDayTimedData? HeadData { get; set; } = null;
 
         public void AddPeriod(int periodSeconds, bool isAvailablePeriod)
         {
             if (HeadData is null)
             {
-                HeadData = new StatusLogDayCumulativeData { PeriodSeconds = periodSeconds, IsAvailable = isAvailablePeriod };
+                HeadData = new StatusLogDayTimedData { PeriodSeconds = periodSeconds, IsAvailable = isAvailablePeriod };
                 return;
             }
 
@@ -18,10 +18,10 @@
             {
                 currentData = currentData.NextData;
             }
-            currentData.NextData = new StatusLogDayCumulativeData { PeriodSeconds = periodSeconds, IsAvailable = isAvailablePeriod };
+            currentData.NextData = new StatusLogDayTimedData { PeriodSeconds = periodSeconds, IsAvailable = isAvailablePeriod };
         }
 
-        public IEnumerable<StatusLogDayCumulativeData> GetData()
+        public IEnumerable<StatusLogDayTimedData> GetData()
         {
             var current = HeadData;
             while (current is not null)
@@ -32,11 +32,11 @@
         }
 
 
-        public class StatusLogDayCumulativeData
+        public class StatusLogDayTimedData
         {
             public int PeriodSeconds  { get; set; } = 0;
             public bool IsAvailable { get; set; } = false;
-            internal StatusLogDayCumulativeData? NextData { get; set; } = null;
+            internal StatusLogDayTimedData? NextData { get; set; } = null;
         }
     }
 }

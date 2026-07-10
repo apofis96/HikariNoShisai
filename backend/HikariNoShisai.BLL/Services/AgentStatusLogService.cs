@@ -64,9 +64,9 @@ namespace HikariNoShisai.BLL.Services
             return chart;
         }
 
-        private StatusLogDayCumulative GetGridCumulativeStatistics(List<AgentStatusLog> logs, DateTimeOffset endDate)
+        private StatusLogDayTimed GetGridTimedStatistics(List<AgentStatusLog> logs, DateTimeOffset endDate)
         {
-            var chart = new StatusLogDayCumulative { Date = endDate.Date };
+            var chart = new StatusLogDayTimed { Date = endDate.Date };
 
             if (logs.Count == 0)
                 return chart;
@@ -126,12 +126,12 @@ namespace HikariNoShisai.BLL.Services
 
             return await GetGridStatistics(allLogs, totalDuration, endDate);
         }
-        public async Task<StatusLogDayCumulative> GetDailyGridCumulativeStatistics(DateTimeOffset endDate, Guid agentId = default)
+        public async Task<StatusLogDayTimed> GetDailyGridTimedStatistics(DateTimeOffset endDate, Guid agentId = default)
         {
             var startDate = endDate.AddDays(-1);
             var allLogs = await GetAgentStatusLogs(agentId, startDate, endDate);
  
-            return GetGridCumulativeStatistics(allLogs, endDate);
+            return GetGridTimedStatistics(allLogs, endDate);
         }
 
         public async Task<List<StatusLogChart>> GetMultipleDailyGridStatistics(DateTimeOffset endDate, DateTimeOffset startDate, Guid agentId = default)
@@ -165,13 +165,13 @@ namespace HikariNoShisai.BLL.Services
             return result;
         }
 
-        public async Task<List<StatusLogDayCumulative>> GetMultipleDailyGridCumulativeStatistics(DateTimeOffset endDate, DateTimeOffset startDate, Guid agentId = default)
+        public async Task<List<StatusLogDayTimed>> GetMultipleDailyGridTimedStatistics(DateTimeOffset endDate, DateTimeOffset startDate, Guid agentId = default)
         {
             var isAnyAgentIdFilter = agentId == default;
             AgentStatusLog? previousLog = null;
             var allLogs = await GetAgentStatusLogs(agentId, startDate, endDate);
 
-            var result = new List<StatusLogDayCumulative>();
+            var result = new List<StatusLogDayTimed>();
             var days = (endDate.Date - startDate.Date).Days;
 
             for (var i = 0; i < days; i++)
@@ -182,7 +182,7 @@ namespace HikariNoShisai.BLL.Services
                 if (previousLog is not null)
                     dailyLogs.Insert(0, previousLog);
 
-                var chart = GetGridCumulativeStatistics(dailyLogs, dayEnd);
+                var chart = GetGridTimedStatistics(dailyLogs, dayEnd);
                 result.Add(chart);
 
                 previousLog = dailyLogs.Last();
