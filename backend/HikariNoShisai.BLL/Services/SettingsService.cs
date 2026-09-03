@@ -50,5 +50,37 @@ namespace HikariNoShisai.BLL.Services
             await _context.SaveChangesAsync();
             _memoryCache.Set(Key, settings);
         }
+
+        public async Task MigrateDate()
+        {
+            await UpdateDateTimeFormattedAsync<Agent>(batchSize: 100);
+            await UpdateDateTimeFormattedAsync<AgentStatusLog>(batchSize: 100);
+            await UpdateDateTimeFormattedAsync<AgentTerminal>(batchSize: 100);
+            await UpdateDateTimeFormattedAsync<Settings>(batchSize: 100);
+            await UpdateDateTimeFormattedAsync<User>(batchSize: 100);
+        }
+
+        private async Task UpdateDateTimeFormattedAsync<TEntity>(int batchSize = 100) where TEntity : BaseEntity
+        {
+            var set = _context.Set<TEntity>();
+            var total = await set.CountAsync();
+
+            for (int i = 0; i < total; i += batchSize)
+            {
+                var items = await set
+                    .OrderBy(e => e.Id)
+                    .Skip(i)
+                    .Take(batchSize)
+                    .ToListAsync();
+
+                foreach (var item in items)
+                {
+                    item.CreatedAtFormatted = item.CreatedAt.ToString();
+                    item.UpdatedAtFormatted = item.UpdatedAt.ToString();
+                }
+
+                await _context.SaveChangesAsync();
+            }
+        }
     }
 }
