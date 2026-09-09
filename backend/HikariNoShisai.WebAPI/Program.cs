@@ -37,7 +37,7 @@ builder.Services.Configure<OpenWeatherConfig>(
     builder.Configuration.GetSection("OpenWeather"));
 
 builder.Services.AddDbContext<HikariNoShisaiContext>(options =>
-    options.UseSqlite("Data Source=app.db"));
+        options.UseNpgsql(builder.Configuration["ConnectionStrings:DefaultConnection"]!));
 
 builder.Services.Configure<RequestLocalizationOptions>(options =>
 {
