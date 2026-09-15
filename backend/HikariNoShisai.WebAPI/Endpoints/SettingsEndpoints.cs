@@ -21,6 +21,13 @@ namespace HikariNoShisai.WebAPI.Endpoints
 
                 return Results.Ok();
             }).WithName("MigrateDate");
+
+            settingsApi.MapGet("/remigrate", async (ISettingsService settingsService) =>
+            {
+                await settingsService.ReMigrateDate();
+
+                return Results.Ok();
+            }).WithName("ReMigrateDate");
         }
     }
 }

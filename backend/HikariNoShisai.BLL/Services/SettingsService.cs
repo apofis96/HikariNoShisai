@@ -60,6 +60,15 @@ namespace HikariNoShisai.BLL.Services
             await UpdateDateTimeFormattedAsync<User>(batchSize: 100);
         }
 
+        public async Task ReMigrateDate()
+        {
+            await ReUpdateDateTimeFormattedAsync<Agent>(batchSize: 100);
+            await ReUpdateDateTimeFormattedAsync<AgentStatusLog>(batchSize: 100);
+            await ReUpdateDateTimeFormattedAsync<AgentTerminal>(batchSize: 100);
+            await ReUpdateDateTimeFormattedAsync<Settings>(batchSize: 100);
+            await ReUpdateDateTimeFormattedAsync<User>(batchSize: 100);
+        }
+
         private async Task UpdateDateTimeFormattedAsync<TEntity>(int batchSize = 100) where TEntity : BaseEntity
         {
             var set = _context.Set<TEntity>();
@@ -77,6 +86,29 @@ namespace HikariNoShisai.BLL.Services
                 {
                     item.CreatedAtFormatted = item.CreatedAt.ToString();
                     item.UpdatedAtFormatted = item.UpdatedAt.ToString();
+                }
+
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        private async Task ReUpdateDateTimeFormattedAsync<TEntity>(int batchSize = 100) where TEntity : BaseEntity
+        {
+            var set = _context.Set<TEntity>();
+            var total = await set.CountAsync();
+
+            for (int i = 0; i < total; i += batchSize)
+            {
+                var items = await set
+                    .OrderBy(e => e.Id)
+                    .Skip(i)
+                    .Take(batchSize)
+                    .ToListAsync();
+
+                foreach (var item in items)
+                {
+                    item.CreatedAt = DateTimeOffset.Parse(item.CreatedAtFormatted);
+                    item.UpdatedAt = DateTimeOffset.Parse(item.UpdatedAtFormatted);
                 }
 
                 await _context.SaveChangesAsync();

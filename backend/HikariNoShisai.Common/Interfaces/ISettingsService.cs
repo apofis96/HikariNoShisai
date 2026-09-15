@@ -6,5 +6,6 @@
         Task<int> GetTimezoneMinutes();
         Task SetTimezoneOffset(int offset);
         Task MigrateDate();
+        Task ReMigrateDate();
     }
 }
