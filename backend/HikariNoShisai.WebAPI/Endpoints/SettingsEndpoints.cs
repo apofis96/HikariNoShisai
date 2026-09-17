@@ -14,20 +14,6 @@ namespace HikariNoShisai.WebAPI.Endpoints
 
                 return Results.Ok(StringHelpers.FormatAgentResponse(offset));
             }).WithName("TimezoneOffset");
-
-            settingsApi.MapGet("/migrate", async (ISettingsService settingsService) =>
-            {
-                await settingsService.MigrateDate();
-
-                return Results.Ok();
-            }).WithName("MigrateDate");
-
-            settingsApi.MapGet("/remigrate", async (ISettingsService settingsService) =>
-            {
-                await settingsService.ReMigrateDate();
-
-                return Results.Ok();
-            }).WithName("ReMigrateDate");
         }
     }
 }
